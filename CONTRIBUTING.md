@@ -18,6 +18,10 @@ python -m unittest discover -s tests
 - **Same screen for people and AI.** Agents get exactly the grid a person sees, and nothing a person doesn't.
 - **No instructions, core knowledge only.** No words, letters or numbers as symbols, no cultural icons. A world must
   be learnable by playing it.
+- **Generated lifetimes never change either.** `train-v1-42` must name the same levels forever, on every machine;
+  `tests/test_worlds.py` pins them. Changes to the world maker that alter its output go in a new version (`v2`).
+  v1's output also depends on the engine's rules and on which shortest path `engine.solve` finds, so both are frozen
+  too.
 - **Every level must be solvable, with an honest par.** `longgame check my-lifetime.json` solves every level and
   compares its par.
 - **Never commit hidden evaluation levels.** Anything in this repository is public practice material.

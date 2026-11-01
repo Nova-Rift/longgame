@@ -55,6 +55,13 @@ class LifetimeSpec:
         """Actions allowed on a level before it ends unfinished: max(100, 20 x par) in v0."""
         return max(self.budget_minimum, self.budget_per_par * par)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """The spec in the lifetime JSON format (``load_spec`` reads it back)."""
+        return {"id": self.id, "title": self.title, "description": self.description, "phases": list(self.phases),
+                "budget": {"minimum": self.budget_minimum, "per_par": self.budget_per_par},
+                "visits": [{"world": v.world, "phase": v.phase,
+                            "levels": [{"par": lv.par, "map": list(lv.map)} for lv in v.levels]} for v in self.visits]}
+
     @property
     def digest(self) -> str:
         """SHA-256 of the levels, budgets and order, so a recording names exactly what was played."""
@@ -122,7 +129,8 @@ def lifetimes() -> List[str]:
 
 
 def load_spec(lifetime: Union[str, Path, Dict[str, Any], LifetimeSpec] = "practice-v0") -> LifetimeSpec:
-    """A shipped lifetime by id, a path to a lifetime JSON file, a dict in that format, or a spec (returned as is)."""
+    """A shipped lifetime by id, a generated one by id (``train-v1-42``, ``heldout-v1-42``: see
+    :mod:`longgame.worlds`), a path to a lifetime JSON file, a dict in that format, or a spec (returned as is)."""
     if isinstance(lifetime, LifetimeSpec):
         return lifetime
     if isinstance(lifetime, dict):
@@ -131,8 +139,12 @@ def load_spec(lifetime: Union[str, Path, Dict[str, Any], LifetimeSpec] = "practi
     if path.suffix == ".json" and path.exists():
         return LifetimeSpec.from_dict(json.loads(path.read_text(encoding="utf-8")))
     name = str(lifetime)
+    from . import worlds
+    if worlds.is_generated(name):
+        return worlds.lifetime(name)
     if name not in lifetimes():
-        raise ValueError(f"Unknown lifetime {name!r}; available: {', '.join(lifetimes())} (or a path to a .json file)")
+        raise ValueError(f"Unknown lifetime {name!r}; available: {', '.join(lifetimes())}, generated ones such as "
+                         f"train-v1-0 or heldout-v1-0 (seeds 0 to 999999999), or a path to a .json file")
     text = (resources.files("longgame") / "lifetimes" / f"{name}.json").read_text(encoding="utf-8")
     return LifetimeSpec.from_dict(json.loads(text))
 

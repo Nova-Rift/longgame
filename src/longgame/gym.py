@@ -7,12 +7,20 @@
     obs, info = env.reset()
     obs, reward, terminated, truncated, info = env.step(1)   # 1 = up
 
+    train = gym.make("LongGame/train-v1")    # a new generated lifetime every episode
+    obs, info = train.reset(seed=500)        # this episode is train-v1-500; info["lifetime"] names it
+
 Observations are ``uint8`` arrays of colour ids, padded with wall colour to a fixed square (by default the smallest
 that fits every level of the lifetime; pass ``size=64`` for ARC-AGI-3 sized frames). Actions are the public ids
 0-5 (reset level, up, down, left, right, use). When a level ends the reward is its score weighted by
 ``1 / (number of phases x levels in its phase)``, else 0, so **an episode's return equals the lifetime score**
 (the mean of the phase means), and maximising return optimises the benchmark itself. ``info`` carries world,
 phase, level, actions used, budget, the result and the unweighted ``level_score``.
+
+``LongGame/train-v1`` and ``LongGame/heldout-v1`` (or ``lifetime="train-v1"``) play the world maker's generated
+lifetimes, a new one every episode: ``reset(seed=n)`` plays lifetime ``n`` (taken modulo 10**9), and ``reset()``
+without a seed plays one drawn from the environment's random generator (seeded by the last seeded reset). Their
+frames are always 12x12 (every generated level fits).
 """
 
 from __future__ import annotations
@@ -31,24 +39,36 @@ from .arc import pad
 from .engine import parse_level
 from .lifetime import Lifetime, load_spec
 from .render import render_text
+from .worlds import FRAME, SEEDS, VERSION
+
+FAMILIES = (f"train-{VERSION}", f"heldout-{VERSION}")
 
 
 class LongGameEnv(gymnasium.Env):
     metadata = {"render_modes": ["ansi"], "render_fps": 4}
 
     def __init__(self, lifetime: Any = "practice-v0", size: Optional[int] = None, render_mode: Optional[str] = None):
-        self.spec_ = load_spec(lifetime)
-        fit = max(max(lv.h + 1, lv.w) for lv in (parse_level(level.map) for v in self.spec_.visits
-                                                 for level in v.levels))
+        self.family = lifetime if isinstance(lifetime, str) and lifetime in FAMILIES else None
+        self.spec_ = self._env = None  # in family mode, each reset picks the lifetime
+        if not self.family:
+            self._use(load_spec(lifetime))
+        fit = FRAME if self.family else self._fit(self.spec_)
         self.size = size or fit
         if self.size < fit:
             raise ValueError(f"size {self.size} is smaller than the largest level ({fit})")
         self.render_mode = render_mode
         self.observation_space = spaces.Box(0, 15, (self.size, self.size), dtype=np.uint8)
         self.action_space = spaces.Discrete(len(KEYS_AND_RESET))
-        self._env = Lifetime(self.spec_)
         self._obs = None
-        per_phase = {p: sum(len(v.levels) for v in self.spec_.visits if v.phase == p) for p in self.spec_.phases}
+
+    @staticmethod
+    def _fit(spec) -> int:
+        return max(max(lv.h + 1, lv.w) for lv in (parse_level(level.map) for v in spec.visits for level in v.levels))
+
+    def _use(self, spec) -> None:
+        self.spec_ = spec
+        self._env = Lifetime(spec)
+        per_phase = {p: sum(len(v.levels) for v in spec.visits if v.phase == p) for p in spec.phases}
         self._weight = {p: 1.0 / (len(per_phase) * n) for p, n in per_phase.items()}
 
     def _array(self, obs) -> "np.ndarray":
@@ -58,16 +78,23 @@ class LongGameEnv(gymnasium.Env):
 
     @staticmethod
     def _info(obs) -> Dict[str, Any]:
-        return {"world": obs.world, "phase": obs.phase, "visit": obs.visit, "level": obs.level,
-                "actions": obs.actions, "budget": obs.budget, "played": obs.played, "total": obs.total,
-                "result": obs.result.to_dict() if obs.result else None}
+        return {"lifetime": obs.lifetime, "world": obs.world, "phase": obs.phase, "visit": obs.visit,
+                "level": obs.level, "actions": obs.actions, "budget": obs.budget, "played": obs.played,
+                "total": obs.total, "result": obs.result.to_dict() if obs.result else None}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None):
         super().reset(seed=seed)
+        if self.family:
+            # unseeded: raw bits from the bit generator, whose stream NumPy keeps the same across versions
+            n = int(seed) % SEEDS if seed is not None else int(self.np_random.bit_generator.random_raw()) % SEEDS
+            if self.spec_ is None or self.spec_.id != f"{self.family}-{n}":
+                self._use(load_spec(f"{self.family}-{n}"))
         self._obs = self._env.reset()
         return self._array(self._obs), self._info(self._obs)
 
     def step(self, action):
+        if self._env is None:
+            raise RuntimeError("Call reset() before step()")
         self._obs = self._env.step(Action(int(action)))
         result = self._obs.result
         reward = result.score * self._weight[result.phase] if result else 0.0
@@ -83,9 +110,11 @@ class LongGameEnv(gymnasium.Env):
         return None
 
     def scorecard(self):
+        if self._env is None:
+            raise RuntimeError("Call reset() first")
         return self._env.scorecard()
 
 
-for _id in ("practice-v0",):
+for _id in ("practice-v0",) + FAMILIES:
     if f"LongGame/{_id}" not in gymnasium.registry:
         gymnasium.register(f"LongGame/{_id}", entry_point="longgame.gym:LongGameEnv", kwargs={"lifetime": _id})

@@ -4,7 +4,7 @@ title: "Long Game: a continual-learning benchmark in the spirit of ARC-AGI"
 authors:
   - family-names: Whitehead
     given-names: Clark
-version: 0.1.1
+version: 0.2.0
 date-released: 2026-10-31
 license: MIT
 repository-code: "https://github.com/Nova-Rift/longgame"

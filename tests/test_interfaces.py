@@ -249,12 +249,36 @@ class TestBridges(unittest.TestCase):
         big = longgame.gym.LongGameEnv(size=64)
         self.assertEqual(big.reset()[0].shape, (64, 64))
 
+    @unittest.skipUnless(__import__("importlib").util.find_spec("gymnasium"), "gymnasium not installed")
+    def test_gymnasium_generated_family(self):
+        import gymnasium as gym
+        import longgame.gym  # noqa: F401 (registers)
+        from gymnasium.utils.env_checker import check_env
+        env = gym.make("LongGame/heldout-v1")
+        obs, info = env.reset(seed=7)
+        self.assertEqual((obs.shape, info["lifetime"]), ((12, 12), "heldout-v1-7"))
+        obs2, info2 = env.reset(seed=7)  # the same seed is the same lifetime
+        self.assertTrue((obs == obs2).all())
+        self.assertEqual(env.unwrapped.scorecard().total, 28)
+        drawn = [env.reset()[1]["lifetime"] for _ in range(2)]  # unseeded: drawn by the seeded generator
+        env.reset(seed=7)
+        self.assertEqual([env.reset()[1]["lifetime"] for _ in range(2)], drawn)
+        self.assertEqual(len(set(drawn)), 2)
+        self.assertEqual(env.reset(seed=2 ** 31 - 1)[1]["lifetime"], f"heldout-v1-{(2 ** 31 - 1) % 10 ** 9}")
+        a, b = (longgame.gym.LongGameEnv("train-v1") for _ in range(2))
+        self.assertNotEqual(a.reset()[1]["lifetime"], b.reset()[1]["lifetime"])  # unseeded copies differ
+        with self.assertRaises(RuntimeError):
+            longgame.gym.LongGameEnv("train-v1").step(1)
+        check_env(longgame.gym.LongGameEnv("train-v1"), skip_render_check=True)
+        self.assertEqual(longgame.gym.LongGameEnv("train-v1", size=64).reset(seed=3)[0].shape, (64, 64))
+
 
 class TestBaselines(unittest.TestCase):
     def test_the_shipped_baselines_are_current(self):
         shipped = json.loads(baselines.path().read_text())
-        self.assertEqual(shipped, baselines.compute(seeds=20))
+        self.assertEqual(shipped, baselines.compute(seeds=20, generated=10))
         self.assertLess(shipped["practice-v0"]["random"]["overall"], 0.05)
+        self.assertEqual(shipped["heldout-v1"]["explorer"]["runs"], 10)
 
 
 if __name__ == "__main__":

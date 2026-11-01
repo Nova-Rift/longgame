@@ -6,7 +6,7 @@ wrapper needs `gymnasium` and `numpy`). The examples in [examples/](../examples)
 - [Lifetimes](#lifetimes) · [Observations](#observations) · [Actions](#actions) · [Scoring](#scoring)
 - [Agents](#agents) · [Recordings](#recordings) · [Command line](#command-line)
 - [JSON-lines protocol](#json-lines-protocol) · [Gymnasium](#gymnasium) · [ARC-AGI-3 bridge](#arc-agi-3-bridge)
-- [Lifetime files](#lifetime-files)
+- [World maker](#world-maker) · [Lifetime files](#lifetime-files)
 
 ## Lifetimes
 
@@ -14,8 +14,9 @@ wrapper needs `gymnasium` and `numpy`). The examples in [examples/](../examples)
 env = longgame.make(lifetime="practice-v0", render_mode=None, record=None, agent="")
 ```
 
-- `lifetime`: a shipped id (`longgame.lifetimes()` lists them), a path to a [lifetime file](#lifetime-files), or a
-  dict in that format.
+- `lifetime`: a shipped id (`longgame.lifetimes()` lists them), a generated id such as `train-v1-42` or
+  `heldout-v1-42` (see [World maker](#world-maker)), a path to a [lifetime file](#lifetime-files), or a dict in that
+  format.
 - `render_mode`: `None`, `"terminal"` (coloured frames printed after every action) or `"ascii"` (map characters).
 - `record`: a path; finished levels are appended there as JSON lines (see [Recordings](#recordings)). `agent` names
   the agent in the recording.
@@ -132,8 +133,9 @@ longgame run AGENT [--lifetime ID|FILE] [--record PATH] [--render terminal|ascii
 longgame verify RECORDING [--lifetime ID|FILE]
 longgame serve [--lifetime ID|FILE] [--record PATH]
 longgame check LIFETIME             every level parses, can be finished, and its par is the true minimum
+longgame show LIFETIME [--maps] [--save FILE]   worlds, rules and pars (and maps); --save writes the lifetime as JSON
 longgame list
-longgame baselines [--seeds 20] [--write]
+longgame baselines [--seeds 20] [--generated 10] [--write]
 ```
 
 `python -m longgame` works the same. `longgame play` keeps progress in `~/.longgame/progress/` (or
@@ -161,18 +163,24 @@ Observations use the field names above. A bad request gets `{"error": "..."}` an
 
 ```python
 import gymnasium as gym
-import longgame.gym  # registers LongGame/practice-v0
+import longgame.gym  # registers LongGame/practice-v0, LongGame/train-v1 and LongGame/heldout-v1
 
 env = gym.make("LongGame/practice-v0")      # or longgame.gym.LongGameEnv(lifetime, size=None)
 obs, info = env.reset()
 obs, reward, terminated, truncated, info = env.step(env.action_space.sample())
+
+train = gym.make("LongGame/train-v1")       # a new generated lifetime every episode
+obs, info = train.reset(seed=500)           # plays train-v1-500; info["lifetime"] names it
 ```
 
 Needs `pip install gymnasium numpy`. One episode is one whole lifetime. Observations are `uint8` arrays padded with
 wall colour to a fixed square (by default the smallest that fits every level; `size=64` for ARC-sized frames).
 `Discrete(6)` actions are the ids 0–5. When a level ends, the reward is its score divided by (number of phases ×
 levels in its phase), so **an episode's return equals the lifetime score**; `info["level_score"]` has the plain level
-score and the final `info` the full scorecard.
+score and the final `info` the full scorecard. In the generated families, `reset(seed=n)` plays lifetime `n`
+(modulo 10⁹) and `reset()` without a seed plays one drawn from the environment's random generator (seeded by the last
+seeded reset), so parallel copies seeded 0, 1, 2 … play different lifetimes. Their frames are always 12 × 12 (every
+generated level fits).
 
 ## ARC-AGI-3 bridge
 
@@ -199,6 +207,49 @@ because a lifetime is never wiped; and once the lifetime is over, actions and re
 current visit already played, finished or not) and `win_levels` (levels in the visit), `available_actions` (ids).
 With the shared action ids, an agent loop written against ARC-AGI-3 frames can drive a lifetime with small changes.
 
+## World maker
+
+`longgame.worlds` makes new levels and whole lifetimes from a seed. Every level is checked by the solver: its par is
+the true fewest actions and falls in its tier's range (the tiers of a rule set never overlap, so each level of a
+visit takes more actions than the one before), and every rule in it matters (take the rule out and the level gets
+shorter, or the old way of finishing it stops working). No clutter: every crate gets pushed, every key picked up,
+and taking away any one gate, switch or door changes the par.
+
+```python
+import longgame
+from longgame import worlds
+
+env = longgame.make("train-v1-42")                    # a generated lifetime; any seed from 0 to 999999999
+spec = worlds.generate("heldout", 7)                  # the same as longgame.load_spec("heldout-v1-7")
+level = worlds.level(["keys", "ice"], tier=3, seed=7)    # a LevelSpec: .map (rows) and .par
+for rules, tier, level in worlds.levels("train", seed=0):  # endless training levels
+    ...
+```
+
+| | |
+|---|---|
+| `worlds.MECHANICS` | `crates`, `keys`, `ice`, `gates`, `twin`, `coins`; no rules at all makes a maze |
+| `worlds.level(rules, tier=2, seed=0)` | One level with up to two rules. Tier 1 is a first, tutorial level; 3 is the hardest. `seed` from 0 to 2³² − 1 |
+| `worlds.levels(split, seed=0)` | An endless stream of `(rules, tier, level)` from one split's rule sets |
+| `worlds.generate(split, seed)` | A lifetime in practice-v0's shape: learn a maze and five rule worlds (2 + 5 × 3 levels), three remixes of two learned rules (2 levels each), return to the five rule worlds (1 new level each) |
+| `worlds.recipes(split)` | The rule sets a split is made from |
+| `worlds.split_of(rules)` | `"train"` or `"heldout"` |
+| `worlds.world_rules(spec)` | Which rules each world of any lifetime uses, read from its maps |
+| `worlds.check(rows, rules, tier)` | The par if a map passes the world maker's checks, else `None` |
+| `worlds.par_range(rules, tier)` | The fewest-actions range for that rule set and tier |
+| `worlds.is_generated(id)` | True for ids like `train-v1-42` |
+
+**Held-out rules.** Training material (`train-v1-*`, `worlds.levels("train")`) never contains coins, and never
+combines crates with gates, keys with ice, or gates with the twin. A held-out lifetime always learns coins as one of
+its five rule worlds (alongside four familiar rules), and every remix is a held-out pair: at least one pair of
+familiar rules never seen together, and at least one with coins. Train on `train-v1-*` and test on `heldout-v1-*`:
+the held-out score measures picking up a rule never seen in training and combining rules never seen together.
+practice-v0 uses only training rules.
+
+**Frozen.** Generation is versioned. `train-v1-42` names the same 28 levels on every computer and Python version,
+forever (tests pin digests on Linux, macOS and Windows), so recordings of generated lifetimes verify by name.
+Improvements to the world maker go into a new version with new names.
+
 ## Lifetime files
 
 A lifetime is JSON:
@@ -217,4 +268,6 @@ A lifetime is JSON:
 
 Every phase listed needs at least one level. Map characters: `#` wall, `.` floor, `@` player, `E` exit, `$` crate, `o` pad, `*` crate on a pad, `k` key, `D`
 door, `_` ice, `S` switch, `G`/`g` gate closed/open, `T` twin, `c` coin. Maps must be rectangular and walled in.
-`par` must be the fewest actions possible: `longgame check my-lifetime.json` checks every level.
+`par` must be the fewest actions possible: `longgame check my-lifetime.json` checks every level. To start from a
+generated lifetime, save it as a file and give it a new `id`:
+`longgame show train-v1-42 --save my-lifetime.json`.

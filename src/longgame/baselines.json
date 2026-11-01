@@ -18,5 +18,45 @@
    "levels": 28,
    "runs": 1
   }
+ },
+ "train-v1": {
+  "random": {
+   "learn": 0.0375,
+   "remix": 0.0037,
+   "return": 0.0101,
+   "overall": 0.0171,
+   "cleared": 5.9,
+   "levels": 28,
+   "runs": 10
+  },
+  "explorer": {
+   "learn": 0.0945,
+   "remix": 0.0397,
+   "return": 0.0731,
+   "overall": 0.0691,
+   "cleared": 17.3,
+   "levels": 28,
+   "runs": 10
+  }
+ },
+ "heldout-v1": {
+  "random": {
+   "learn": 0.0353,
+   "remix": 0.0123,
+   "return": 0.014,
+   "overall": 0.0205,
+   "cleared": 6.5,
+   "levels": 28,
+   "runs": 10
+  },
+  "explorer": {
+   "learn": 0.0977,
+   "remix": 0.0477,
+   "return": 0.0638,
+   "overall": 0.0698,
+   "cleared": 17.5,
+   "levels": 28,
+   "runs": 10
+  }
  }
 }

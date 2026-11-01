@@ -2,7 +2,7 @@
 
     PYTHONPATH=src python3 docs/figures/make_figures.py
 
-Writes docs/figures/*.svg and docs/figures/play.gif (needs Pillow for the GIF).
+Writes docs/figures/*.svg, play.gif and worlds.gif (the GIFs need Pillow).
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import json
 from html import escape
 from pathlib import Path
 
-from longgame import engine, load_spec
+from longgame import engine, load_spec, worlds
 from longgame.engine import Cell
 
 OUT = Path(__file__).resolve().parent
@@ -20,6 +20,7 @@ MONO = "'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace"
 PANEL, BOARD, FLOOR = "#15141c", "#0e0d13", "#1d1b25"
 INK, INK2, MUTED, LINE = "#ecebf2", "#b4afc4", "#8f8aa0", "#2c2a36"
 LEARN, REMIX, RETURN = "#4c8ff7", "#f0b443", "#1f9d55"
+TRAIN, HELD = "#3987e5", "#d95926"  # validated pair on PANEL (CVD-safe)
 
 
 # --- drawing primitives ------------------------------------------------------------------------------------------
@@ -307,58 +308,136 @@ def fig_idea():
     return svg(W, y2 + 118, "".join(body), "ARC-AGI scores each task alone; Long Game scores what carries over")
 
 
+ICON = {"crates": Cell.CRATE, "keys": Cell.KEY, "ice": Cell.ICE, "gates": Cell.GATE_CLOSED, "twin": Cell.TWIN,
+        "coins": Cell.COIN}
+THUMBS = [(("crates", "ice"), 2, 4), (("keys", "gates"), 2, 1), (("keys", "ice"), 2, 5), (("twin", "coins"), 2, 2)]
+
+
+def fig_worlds():
+    """Which rule combinations are for training and which are held out, with levels the world maker made."""
+    W = 900
+    body = [text(32, 46, "The world maker", 22, INK, 700),
+            text(32, 70, "Endless new levels, each built from a seed and checked by the solver. Some rules never "
+                         "appear in training.", 13, INK2)]
+    names = list(worlds.MECHANICS)
+    S, g = 38, 5
+    mx, my = 150, 158
+    for i, m in enumerate(names):  # column headers: icon over name
+        cx = mx + i * (S + g) + S / 2
+        body.append(rect(cx - 13, my - 58, 26, 26, 6, BOARD))
+        body.append(cell_svg(ICON[m], cx - 10, my - 55, 20))
+        body.append(text(cx, my - 14, m, 11, INK2, 400, "middle"))
+    for j, m in enumerate(names):  # row headers: icon then name
+        cy = my + j * (S + g) + S / 2
+        body.append(rect(32, cy - 13, 26, 26, 6, BOARD))
+        body.append(cell_svg(ICON[m], 35, cy - 10, 20))
+        body.append(text(66, cy + 4, m, 12, INK2))
+        for i, n in enumerate(names):
+            if i < j:
+                continue
+            held = worlds.split_of([m, n]) == "heldout"
+            x, y = mx + i * (S + g), my + j * (S + g)
+            body.append(rect(x, y, S, S, 6, HELD if held else TRAIN))
+            if i == j:  # one rule on its own: a dot marks the diagonal
+                body.append(circle(x + S / 2, y + S / 2, 4, "#ffffff"))
+    ly = my + 6 * (S + g) + 18
+    n_train, n_held = len(worlds.recipes("train")), len(worlds.recipes("heldout"))
+    body.append(rect(32, ly, 14, 14, 3, TRAIN))
+    body.append(text(54, ly + 12, f"training ({n_train} kinds of world, mazes included)", 13, INK))
+    body.append(rect(32, ly + 24, 14, 14, 3, HELD))
+    body.append(text(54, ly + 36, f"held out for testing ({n_held} kinds)", 13, INK))
+    body.append(circle(39, ly + 55, 4, "#ffffff"))
+    body.append(text(54, ly + 60, "one rule on its own; other squares mix two", 13, INK2))
+
+    # example levels, two training and two held out
+    tx, ty, slot_w, slot_h, cell = 470, 96, 210, 190, 14
+    for k, (recipe, tier, seed) in enumerate(THUMBS):
+        lv = worlds.level(recipe, tier, seed)
+        held = worlds.split_of(recipe) == "heldout"
+        x, y = tx + (k % 2) * slot_w, ty + (k // 2) * slot_h
+        body.append(rect(x, y + 4, 12, 12, 3, HELD if held else TRAIN))
+        body.append(text(x + 20, y + 15, " + ".join(recipe), 13, INK, 600))
+        b, w, h = board_svg(first_grid(lv.map), x, y + 26, cell, hud=False)
+        body.append(b)
+        body.append(text(x, y + 26 + h + 16, f"seed {seed} · par {lv.par}", 11, MUTED))
+    fy = max(ly + 92, ty + 2 * slot_h + 10)
+    held_pairs = [" with ".join(p) for p in worlds.HELD_OUT_PAIRS if "coins" not in p]
+    body.append(text(32, fy, f"Training never shows coins, or {', '.join(held_pairs[:-1])} or {held_pairs[-1]}. "
+                             "Held-out lifetimes always do.", 13, INK2))
+    return svg(W, fy + 26, "".join(body), "The world maker: a chart of which rule combinations are for training "
+                                          "and which are held out for testing, next to four generated levels")
+
+
 # --- animation ---------------------------------------------------------------------------------------------------
 
 DEMO = ["###########", "#@k$.___o.#", "#.#####.###", "#.......DE#", "###########"]  # not in any lifetime
 
 
+def _hex(h):
+    return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
+
+
+def pil_cell(d, c, x, y, s, hud=False):
+    """One cell on a Pillow canvas, drawn like the browser player (and like cell_svg)."""
+    r, b = s * 0.12, max(2, int(s * 0.09))
+    base = {Cell.WALL: "#2c2a36" if hud else "#5d5a6b", Cell.EXIT: "#1f9d55", Cell.DOOR: "#8a6a12",
+            Cell.ICE: "#a8e4f0", Cell.GATE_CLOSED: "#7a4ad8"}.get(c, FLOOR)
+    d.rounded_rectangle([x, y, x + s, y + s], r, fill=_hex(base))
+    cx, cy = x + s / 2, y + s / 2
+    if c in (Cell.PLAYER, Cell.TWIN):
+        colour = "#4c8ff7" if c == Cell.PLAYER else "#e5484d"
+        d.ellipse([cx - s * .38, cy - s * .38, cx + s * .38, cy + s * .38], fill=_hex(colour))
+    elif c == Cell.EXIT_CLOSED:
+        d.rounded_rectangle([x, y, x + s, y + s], r, outline=_hex("#1f6b3f"), width=b)
+    elif c in (Cell.CRATE, Cell.CRATE_ON_PAD):
+        if c == Cell.CRATE_ON_PAD:
+            d.rounded_rectangle([x, y, x + s, y + s], r, outline=_hex("#d29a35"), width=b)
+        i = s * 0.1
+        fill, edge = ("#f0b443", "#b07a1d") if c == Cell.CRATE_ON_PAD else ("#b8682a", "#8a4b1c")
+        d.rounded_rectangle([x + i, y + i, x + s - i, y + s - i], r * .7, fill=_hex(fill), outline=_hex(edge),
+                            width=b)
+    elif c == Cell.PAD:
+        d.rounded_rectangle([x, y, x + s, y + s], r, outline=_hex("#d29a35"), width=b)
+    elif c == Cell.KEY:
+        k = s * 0.23
+        d.polygon([(cx, cy - k), (cx + k, cy), (cx, cy + k), (cx - k, cy)], fill=_hex("#f5d02f"))
+    elif c == Cell.DOOR:
+        d.rounded_rectangle([x + s * .42, y + s * .36, x + s * .58, y + s * .64], s * .06, fill=_hex("#3a2d06"))
+    elif c == Cell.SWITCH:
+        d.ellipse([cx - s * .28, cy - s * .28, cx + s * .28, cy + s * .28], outline=_hex("#e2559c"), width=b)
+    elif c == Cell.GATE_OPEN:
+        d.rounded_rectangle([x, y, x + s, y + s], r, outline=_hex("#4f3a7c"), width=max(1, int(b * 0.7)))
+    elif c == Cell.COIN:
+        d.ellipse([cx - s * .16, cy - s * .16, cx + s * .16, cy + s * .16], fill=_hex("#f3f3f3"))
+
+
+def pil_board(d, grid, ox, oy, cell, gap, scale):
+    for yy, row in enumerate(grid):
+        hud = yy == len(grid) - 1
+        for xx, c in enumerate(row):
+            pil_cell(d, c, (ox + xx * cell + gap / 2) * scale, (oy + yy * cell + gap / 2) * scale,
+                     (cell - gap) * scale, hud)
+
+
+def solution_states(rows):
+    level = engine.parse_level(rows)
+    states = [level.start]
+    for m in engine.solve(level):
+        states.append(engine.step(level, states[-1], m)[0])
+    return level, states
+
+
 def fig_gif(path: Path) -> None:
     from PIL import Image, ImageDraw
 
-    level = engine.parse_level(DEMO)
-    moves = engine.solve(level)
-    states = [level.start]
-    for m in moves:
-        states.append(engine.step(level, states[-1], m)[0])
+    level, states = solution_states(DEMO)
     cell, pad, gap, scale = 40, 14, 3, 2
     grid0 = engine.render(level, level.start)
     W, H = len(grid0[0]) * cell + 2 * pad, len(grid0) * cell + 2 * pad
 
-    def hexc(h):
-        return tuple(int(h[i:i + 2], 16) for i in (1, 3, 5))
-
     def frame(state):
-        img = Image.new("RGB", (W * scale, H * scale), hexc(BOARD))
-        d = ImageDraw.Draw(img)
-        grid = engine.render(level, state)
-        for yy, row in enumerate(grid):
-            hud = yy == len(grid) - 1
-            for xx, c in enumerate(row):
-                x, y, s = (pad + xx * cell + gap / 2) * scale, (pad + yy * cell + gap / 2) * scale, (cell - gap) * scale
-                r, b = s * 0.12, max(2, int(s * 0.09))
-                base = {Cell.WALL: "#2c2a36" if hud else "#5d5a6b", Cell.EXIT: "#1f9d55", Cell.DOOR: "#8a6a12",
-                        Cell.ICE: "#a8e4f0", Cell.GATE_CLOSED: "#7a4ad8"}.get(c, FLOOR)
-                d.rounded_rectangle([x, y, x + s, y + s], r, fill=hexc(base))
-                cx, cy = x + s / 2, y + s / 2
-                if c == Cell.PLAYER:
-                    d.ellipse([cx - s * .38, cy - s * .38, cx + s * .38, cy + s * .38], fill=hexc("#4c8ff7"))
-                elif c == Cell.EXIT_CLOSED:
-                    d.rounded_rectangle([x, y, x + s, y + s], r, outline=hexc("#1f6b3f"), width=b)
-                elif c in (Cell.CRATE, Cell.CRATE_ON_PAD):
-                    if c == Cell.CRATE_ON_PAD:
-                        d.rounded_rectangle([x, y, x + s, y + s], r, outline=hexc("#d29a35"), width=b)
-                    i = s * 0.1
-                    fill, edge = ("#f0b443", "#b07a1d") if c == Cell.CRATE_ON_PAD else ("#b8682a", "#8a4b1c")
-                    d.rounded_rectangle([x + i, y + i, x + s - i, y + s - i], r * .7, fill=hexc(fill),
-                                        outline=hexc(edge), width=b)
-                elif c == Cell.PAD:
-                    d.rounded_rectangle([x, y, x + s, y + s], r, outline=hexc("#d29a35"), width=b)
-                elif c == Cell.KEY:
-                    k = s * 0.23
-                    d.polygon([(cx, cy - k), (cx + k, cy), (cx, cy + k), (cx - k, cy)], fill=hexc("#f5d02f"))
-                elif c == Cell.DOOR:
-                    d.rounded_rectangle([x + s * .42, y + s * .36, x + s * .58, y + s * .64], s * .06,
-                                        fill=hexc("#3a2d06"))
+        img = Image.new("RGB", (W * scale, H * scale), _hex(BOARD))
+        pil_board(ImageDraw.Draw(img), engine.render(level, state), pad, pad, cell, gap, scale)
         return img.resize((W, H), Image.LANCZOS)
 
     frames = [frame(s) for s in states]
@@ -366,13 +445,59 @@ def fig_gif(path: Path) -> None:
     frames[0].save(path, save_all=True, append_images=frames[1:], duration=durations, loop=0, optimize=True)
 
 
+# Levels for the world maker animation: (rules, tier, seed). Training rules first, then held-out ones.
+GIF_LEVELS = [(("crates", "ice"), 2, 4), (("keys", "gates"), 2, 1), (("twin",), 3, 2), (("keys", "ice"), 2, 5),
+              (("coins",), 2, 3)]
+
+
+def fig_worlds_gif(path: Path) -> None:
+    """The solver finishing a few levels straight from the world maker, labelled training or held out."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    def font(size, bold=False):
+        for name in (("DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"), "Arial.ttf"):
+            for folder in ("/usr/share/fonts/truetype/dejavu/", ""):
+                try:
+                    return ImageFont.truetype(folder + name, size)
+                except OSError:
+                    pass
+        return ImageFont.load_default()
+
+    cell, gap, scale, side, top = 34, 3, 2, 12, 64
+    W, H = side * cell + 40, side * cell + top + 24
+    title, small = font(19 * scale, True), font(13 * scale)
+    frames, durations = [], []
+    for recipe, tier, seed in GIF_LEVELS:
+        spec = worlds.level(recipe, tier, seed)
+        level, states = solution_states(spec.map)
+        held = worlds.split_of(recipe) == "heldout"
+        grid0 = engine.render(level, level.start)
+        ox, oy = (W - len(grid0[0]) * cell) / 2, top + (side * cell - len(grid0) * cell) / 2
+        for k, state in enumerate(states):
+            img = Image.new("RGB", (W * scale, H * scale), _hex(PANEL))
+            d = ImageDraw.Draw(img)
+            name = " + ".join(recipe)
+            d.text((20 * scale, 16 * scale), name, font=title, fill=_hex(INK))
+            badge = "held out for testing" if held else "training"
+            bw = d.textlength(badge, font=small) + 20 * scale
+            bx = W * scale - 20 * scale - bw
+            d.rounded_rectangle([bx, 15 * scale, bx + bw, 39 * scale], 12 * scale, fill=_hex(HELD if held else TRAIN))
+            d.text((bx + 10 * scale, 19 * scale), badge, font=small, fill=_hex("#ffffff"))
+            d.text((20 * scale, 42 * scale), f"made from seed {seed} · par {spec.par}", font=small, fill=_hex(MUTED))
+            pil_board(d, engine.render(level, state), ox, oy, cell, gap, scale)
+            frames.append(img.resize((W, H), Image.LANCZOS))
+            durations.append(1100 if k == 0 else 1300 if k == len(states) - 1 else 230)
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=durations, loop=0, optimize=True)
+
+
 def main():
     figures = {"lifetime.svg": fig_lifetime(), "same-screen.svg": fig_same_screen(), "scoring.svg": fig_scoring(),
-               "baselines.svg": fig_baselines(), "idea.svg": fig_idea()}
+               "baselines.svg": fig_baselines(), "idea.svg": fig_idea(), "worlds.svg": fig_worlds()}
     for name, body in figures.items():
         (OUT / name).write_text(body)
     fig_gif(OUT / "play.gif")
-    print("wrote", ", ".join([*figures, "play.gif"]))
+    fig_worlds_gif(OUT / "worlds.gif")
+    print("wrote", ", ".join([*figures, "play.gif", "worlds.gif"]))
 
 
 if __name__ == "__main__":

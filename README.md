@@ -15,12 +15,26 @@ An open continual-learning benchmark in the spirit of <a href="https://arcprize.
 
 <p align="center"><img src="docs/figures/baselines.svg" alt="Baseline scores: random keys 1.2% overall, explorer 7.8%; the explorer gets no better on remix or return" width="860"></p>
 
+## Endless worlds
+
+<p align="center"><img src="docs/figures/worlds.gif" alt="The solver finishing five levels made by the world maker: crates and ice, keys and gates, and the twin for training; keys and ice, and coins, held out for testing" width="460"></p>
+
+<p align="center"><img src="docs/figures/worlds.svg" alt="A chart of which rule combinations are for training and which are held out for testing, next to four generated levels" width="860"></p>
+
+```python
+import longgame
+
+env = longgame.make("train-v1-42")       # any seed: a new 28-level lifetime, every level solver-checked
+test = longgame.make("heldout-v1-42")    # rules kept out of training: test on these
+```
+
 ## Quick start
 
 ```bash
 pip install "git+https://github.com/Nova-Rift/longgame"
 
 longgame play            # play it yourself in the browser
+longgame play train-v1-7 # a lifetime the world maker made from seed 7
 longgame run explorer    # score a baseline agent
 ```
 
@@ -43,18 +57,20 @@ longgame verify runs/mine.jsonl  # replays every action: a recording is proof of
 ```
 
 One agent object plays the whole lifetime and is never reset, so what it keeps is what it remembers.
-More in [examples/](examples/) and the [API reference](docs/api.md).
+More in [examples/](examples/) (including [train, then test on held-out rules](examples/train_then_test.py)) and the
+[API reference](docs/api.md).
 
 | Also works with | |
 |---|---|
-| Gymnasium | `import longgame.gym` then `gym.make("LongGame/practice-v0")` (needs `gymnasium`) |
+| Gymnasium | `import longgame.gym` then `gym.make("LongGame/practice-v0")`, or `"LongGame/train-v1"` for a new generated lifetime every episode (needs `gymnasium`) |
 | Any language | `longgame serve`: JSON lines on stdin/stdout ([Node example](examples/node_agent.mjs)) |
 | ARC-AGI-3 agents | `longgame.arc.ArcEnvironment()` acts like the ARC toolkit's environment: `step(GameAction.ACTION1)` returns a `FrameData` with a 64 × 64 frame |
 
 ## Roadmap
 
 - [x] v0.1: practice lifetime, browser player, verifiable recordings, baselines
-- [ ] Generated worlds for unlimited training, with held-out rules for testing
+- [x] v0.2: the world maker, endless generated worlds for training, with held-out rules for testing
+- [ ] More rules (gravity, conveyors, paint, chasers, …) for the world maker
 - [ ] Changed-rule worlds and long gaps between visits
 - [ ] ARC-style picture puzzles inside lifetimes
 - [ ] Human baselines, hidden test lifetimes, a leaderboard

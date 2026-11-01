@@ -6,7 +6,8 @@
     longgame run my_agent.py:MyAgent --record runs/mine.jsonl
     longgame verify runs/mine.jsonl   replay a recording and confirm its score
     longgame serve                    JSON lines on stdin/stdout, for agents in any language
-    longgame list                     lifetimes that ship with the toolkit
+    longgame list                     lifetimes that ship with the toolkit, and the generated ones
+    longgame show train-v1-42 --maps  what is in a lifetime (worlds, rules, pars, maps); --save writes it as JSON
     longgame check my-lifetime.json   check every level parses and its par is the true minimum
     longgame baselines                recompute the built-in agents' scores
 """
@@ -37,9 +38,34 @@ def _options(pairs: List[str]) -> Dict[str, Any]:
 
 
 def cmd_list(args: argparse.Namespace) -> int:
+    from . import worlds
     for name in lifetimes():
         spec = load_spec(name)
         print(f"{name}: {spec.title} — {len(spec.visits)} visits, {spec.total_levels} levels. {spec.description}")
+    held = ", ".join("+".join(p) for p in worlds.HELD_OUT_PAIRS if not set(p) & set(worlds.HELD_OUT_MECHANICS))
+    print(f"train-{worlds.VERSION}-<seed>: generated training lifetimes, any seed from 0 to 999999999 — 14 visits, "
+          f"28 levels, made by the world maker. They never use {', '.join(worlds.HELD_OUT_MECHANICS)}, or {held}.")
+    print(f"heldout-{worlds.VERSION}-<seed>: generated held-out lifetimes — the same shape, but with the rules kept "
+          f"out of training: {', '.join(worlds.HELD_OUT_MECHANICS)} in a learn world, and held-out pairs in every "
+          f"remix.")
+    return 0
+
+
+def cmd_show(args: argparse.Namespace) -> int:
+    from .worlds import world_rules
+    spec = load_spec(args.lifetime)
+    if args.save:
+        Path(args.save).write_text(json.dumps(spec.to_dict(), indent=1) + "\n", encoding="utf-8")
+        print(f"wrote {args.save}")
+    print(f"{spec.id}: {spec.title} — {len(spec.visits)} visits, {spec.total_levels} levels")
+    rules = world_rules(spec)
+    for i, v in enumerate(spec.visits):
+        pars = ", ".join(str(lv.par) for lv in v.levels)
+        print(f"{i + 1:>3}. world {v.world}  {v.phase:<7} {'+'.join(rules[v.world]) or 'maze':<14} par {pars}")
+        if args.maps:
+            maps = [list(lv.map) for lv in v.levels]
+            for r in range(max(len(m) for m in maps)):
+                print("     " + "   ".join(m[r] if r < len(m) else " " * len(m[0]) for m in maps))
     return 0
 
 
@@ -53,7 +79,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     else:
         print(card.summary())
         if args.record:
-            custom = "" if args.lifetime in lifetimes() else f" --lifetime {args.lifetime}"
+            from .worlds import is_generated
+            named = args.lifetime in lifetimes() or is_generated(args.lifetime)
+            custom = "" if named else f" --lifetime {args.lifetime}"
             print(f"recording: {args.record}  (check it with: longgame verify {args.record}{custom})")
     return 0
 
@@ -105,7 +133,7 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 def cmd_baselines(args: argparse.Namespace) -> int:
     from .baselines import compute, write
-    table = compute(seeds=args.seeds)
+    table = compute(seeds=args.seeds, generated=args.generated)
     if args.write:
         path = write(table)
         print(f"wrote {path}")
@@ -147,15 +175,22 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--record", help="write a verifiable recording here")
     s.set_defaults(func=cmd_serve)
 
-    s = sub.add_parser("list", help="lifetimes that ship with the toolkit")
+    s = sub.add_parser("list", help="lifetimes that ship with the toolkit, and the generated ones")
     s.set_defaults(func=cmd_list)
+
+    s = sub.add_parser("show", help="what is in a lifetime: worlds, rules, pars (and maps)")
+    s.add_argument("lifetime", help="lifetime id (e.g. practice-v0, train-v1-42) or path to a lifetime .json")
+    s.add_argument("--maps", action="store_true", help="print every level's map")
+    s.add_argument("--save", metavar="FILE", help="also write the lifetime as JSON (e.g. to edit or share it)")
+    s.set_defaults(func=cmd_show)
 
     s = sub.add_parser("check", help="check a lifetime's levels: parse, solvable, par is the true minimum")
     s.add_argument("lifetime", help="lifetime id or path to a lifetime .json")
     s.set_defaults(func=cmd_check)
 
     s = sub.add_parser("baselines", help="recompute the built-in agents' scores")
-    s.add_argument("--seeds", type=int, default=20)
+    s.add_argument("--seeds", type=int, default=20, help="random-agent seeds on shipped lifetimes")
+    s.add_argument("--generated", type=int, default=10, help="generated lifetimes per family (train, heldout)")
     s.add_argument("--write", action="store_true", help="update the baselines file shipped with the package")
     s.set_defaults(func=cmd_baselines)
     return p

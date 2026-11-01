@@ -10,8 +10,8 @@ recomputes every level. Format, one JSON object per line::
     {"type": "end", "phases": {...}, "overall": 0.42, "played": 28, "total": 28}
 
 A level line is written when the level ends, so a recording of an unfinished lifetime holds its finished levels.
-The levels are never taken from the recording itself: they come from the toolkit's own copy of the named lifetime,
-or from a lifetime file given explicitly to ``verify``.
+The levels are never taken from the recording itself: they come from the toolkit's own copy of the named lifetime
+(a shipped one, or a generated one rebuilt from its id), or from a lifetime file given explicitly to ``verify``.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import IO, Any, Dict, List, Optional, Union
 
 from .lifetime import LevelResult, Lifetime, LifetimeSpec, Scorecard, lifetimes, load_spec
+from .worlds import is_generated
 
 
 class Recorder:
@@ -91,8 +92,9 @@ def _same(recorded: Any, actual: float) -> bool:
 def verify(path: Union[str, Path], lifetime: Union[None, str, Path, LifetimeSpec] = None) -> Verification:
     """Replay a recording and check every recorded level and the final score against the rules.
 
-    The levels come from the toolkit's own copy of the lifetime the recording names (a shipped id), or from
-    ``lifetime`` when given; never from the recording. Malformed recordings are reported, not raised.
+    The levels come from the toolkit's own copy of the lifetime the recording names (a shipped id, or a generated
+    id rebuilt by the world maker), or from ``lifetime`` when given; never from the recording. Malformed recordings
+    are reported, not raised.
     """
     try:
         rows = read(path)
@@ -104,7 +106,7 @@ def verify(path: Union[str, Path], lifetime: Union[None, str, Path, LifetimeSpec
     agent = head.get("agent") if isinstance(head.get("agent"), str) else ""
     if lifetime is None:
         name = head.get("lifetime")
-        if not isinstance(name, str) or name not in lifetimes():
+        if not isinstance(name, str) or not (name in lifetimes() or is_generated(name)):
             return Verification(False, None, [f"The recording names lifetime {name!r}, which does not ship with this "
                                               f"toolkit. If it came from a file, pass it with --lifetime."], agent)
         lifetime = name

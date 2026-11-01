@@ -8,8 +8,9 @@ measure general intelligence as how efficiently a system picks up skills it has 
 for people and hard for AI. It adds what no ARC-AGI version scores today: whether those skills **last**, **build on
 each other** and **survive change**. That is continual learning, and its classic failure, catastrophic forgetting.
 
-> **Status (October 2026): v0.1 of the toolkit is out** with one public practice lifetime (14 visits, 28 levels).
-> This document is the full plan; most of it is not built yet, and nothing here is a result.
+> **Status (October 2026): v0.2 of the toolkit is out**, with one public practice lifetime (14 visits, 28 levels)
+> and the world maker: endless generated lifetimes for training (`train-v1-*`) and for testing on held-out rules
+> (`heldout-v1-*`). This document is the full plan; most of it is not built yet, and nothing here is a result.
 
 ## Why
 
@@ -149,7 +150,16 @@ The engine that makes the test also makes unlimited training material:
 - a **lifetime generator** that varies order, gaps, remixes and rule changes.
 
 Training worlds use only the public mechanics; evaluation worlds use mechanics held out from training, so a high score
-cannot come from having seen the games before. One engine runs everywhere: fast and headless for reinforcement
+cannot come from having seen the games before.
+
+**Built so far (v0.2): the world maker.** It generates levels from the six v0 mechanics (crates and pads, keys and
+doors, ice, switches and gates, the twin, coins) and mazes, one rule or two at a time, at three tiers of difficulty.
+The solver checks every level, sets its par, and confirms each rule matters (without it, the level gets shorter or
+plays differently). Lifetimes are named by seed (`train-v1-42`), so they are reproducible everywhere and recordings
+of them verify by name. Held out from all training material: coins, and three pairs of training mechanics (crates
+with gates, keys with ice, gates with the twin). `heldout-v1-*` lifetimes learn coins as a new world and remix only
+held-out pairs. This is a first, public version of the held-out idea: the real evaluation worlds will use mechanics
+that are not in the public code at all. One engine runs everywhere: fast and headless for reinforcement
 learning, a Python (Gymnasium-style) API, a JSON-lines command line for any language, and a browser player for people.
 
 ## Baselines (planned)
@@ -176,7 +186,8 @@ learning, a Python (Gymnasium-style) API, a JSON-lines command line for any lang
    solver-checked levels.
 1. **Done: toolkit v0.1.** The engine as a standalone Python package with ARC-AGI-3 action ids, a browser player,
    recordings anyone can verify, Gymnasium and JSON-lines interfaces, baselines and tests.
-2. Mechanic library, level generator and solver, lifetime generator; first training release.
+2. **Done: toolkit v0.2.** The world maker: a level generator and lifetime generator over the v0 mechanics, with
+   held-out rules; the first training release. Still to come in this step: a bigger mechanic library.
 3. Puzzle rooms, changed worlds, the full scorer and the three tracks.
 4. Baseline agents.
 5. Human study: first-play baselines and lifetime sessions.

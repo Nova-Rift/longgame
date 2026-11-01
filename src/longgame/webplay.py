@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 from .lifetime import Lifetime, LifetimeSpec, load_spec, replay
+from .worlds import is_generated
 
 STATIC = {"player.js": "text/javascript; charset=utf-8", "player.css": "text/css; charset=utf-8",
           "favicon.svg": "image/svg+xml"}
@@ -33,6 +34,11 @@ def home() -> Path:
 
 def baselines() -> Dict[str, Any]:
     return json.loads((resources.files("longgame") / "baselines.json").read_text(encoding="utf-8"))
+
+
+def _baseline_key(lifetime_id: str) -> str:
+    """Generated lifetimes compare against their family's average (train-v1-42 -> train-v1)."""
+    return lifetime_id.rsplit("-", 1)[0] if is_generated(lifetime_id) else lifetime_id
 
 
 class Session:
@@ -88,7 +94,8 @@ class Session:
                 "moves": len(self.env.history), "recording": str(self.recording) if self.recording else None,
                 "verify": (f'longgame verify "{self.recording}"' + (f' --lifetime "{self.source}"' if self.source else "")
                            if self.recording else None),
-                "baselines": {name: b["overall"] for name, b in baselines().get(self.spec.id, {}).items()}}
+                "baselines": {name: b["overall"]
+                              for name, b in baselines().get(_baseline_key(self.spec.id), {}).items()}}
 
     def step(self, action: Any) -> Dict[str, Any]:
         with self.lock:
@@ -186,7 +193,8 @@ def start_server(lifetime: Any = "practice-v0", port: int = 8765, fresh: bool = 
                  save_dir: Optional[Path] = None) -> Tuple[ThreadingHTTPServer, str, Session]:
     """Start the player in a background thread. Returns (server, url, session); call server.shutdown() to stop."""
     from .lifetime import lifetimes
-    source = None if isinstance(lifetime, str) and lifetime in lifetimes() else str(lifetime)
+    named = isinstance(lifetime, str) and (lifetime in lifetimes() or is_generated(lifetime))
+    source = None if named else str(lifetime)
     session = Session(load_spec(lifetime), fresh=fresh, save_dir=save_dir, source=source)
     token = secrets.token_urlsafe(18)
     hosts: set = set()
