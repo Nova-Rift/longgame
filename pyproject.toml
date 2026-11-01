@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "longgame"
+version = "0.1.0"
+description = "Long Game: can an AI keep learning new games without forgetting the old ones? A continual-learning benchmark in the spirit of ARC-AGI."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Clark Whitehead"}]
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["continual learning", "catastrophic forgetting", "benchmark", "ARC-AGI", "reinforcement learning", "games", "AGI"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Games/Entertainment :: Puzzle Games",
+]
+
+[project.optional-dependencies]
+gym = ["gymnasium>=0.29", "numpy>=1.21"]
+
+[project.scripts]
+longgame = "longgame.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Nova-Rift/longgame"
+Issues = "https://github.com/Nova-Rift/longgame/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+longgame = ["lifetimes/*.json", "baselines.json", "web/*"]

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="longgame-token" content="{{TOKEN}}">
+<title>Long Game</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/player.css">
+</head>
+<body>
+<main class="lg">
+  <header class="lg-head">
+    <h1 class="lg-mark" aria-label="Long Game">LONG<span>GAME</span></h1>
+    <p class="lg-sub" id="lifetime-title"></p>
+  </header>
+
+  <section class="lg-status" aria-live="polite" id="status"></section>
+
+  <div class="lg-stage">
+    <canvas id="board" class="lg-board" role="img" aria-label="Game board"></canvas>
+    <div class="lg-final" id="final" hidden></div>
+  </div>
+
+  <nav class="lg-pad" aria-label="Controls" id="pad">
+    <button type="button" data-action="3" aria-label="Left">←</button>
+    <button type="button" data-action="1" aria-label="Up">↑</button>
+    <button type="button" data-action="2" aria-label="Down">↓</button>
+    <button type="button" data-action="4" aria-label="Right">→</button>
+    <button type="button" data-action="5" class="lg-use">Interact <kbd>space</kbd></button>
+    <button type="button" data-action="0">Restart <kbd>R</kbd></button>
+  </nav>
+
+  <p class="lg-keys" id="keys-hint">Use your keyboard: ↑ ← ↓ → or W A S D to move, space to interact (it works only in some spots), R to restart.</p>
+
+  <p class="lg-note" id="message">No instructions: work out each world by playing.</p>
+
+  <footer class="lg-score" id="score"></footer>
+</main>
+<script src="/static/player.js"></script>
+</body>
+</html>

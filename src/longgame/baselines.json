@@ -1,0 +1,22 @@
+{
+ "practice-v0": {
+  "random": {
+   "learn": 0.0338,
+   "remix": 0.0005,
+   "return": 0.0025,
+   "overall": 0.0123,
+   "cleared": 5.1,
+   "levels": 28,
+   "runs": 20
+  },
+  "explorer": {
+   "learn": 0.1336,
+   "remix": 0.0427,
+   "return": 0.0564,
+   "overall": 0.0776,
+   "cleared": 18.0,
+   "levels": 28,
+   "runs": 1
+  }
+ }
+}

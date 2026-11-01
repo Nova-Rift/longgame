@@ -1,0 +1,39 @@
+/* Long Game player. The board keeps the same colours in light and dark themes (it is the observation). */
+:root{--bg:#f6f5f9;--ink:#1c1a24;--muted:#6a6578;--line:#dcd8e6;--card:#fff;--accent:#7650a8;--accent-soft:#eee6f8;
+ --good:#1f9d55;--bad:#c2410c;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#121118;--ink:#ecebf2;--muted:#9a95ab;--line:#2c2a36;--card:#1b1a22;
+ --accent:#b392e6;--accent-soft:#2a2238;--good:#44c77f;--bad:#f0874f;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.lg{max-width:720px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:12px}
+.lg-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.lg-mark{margin:0;font:800 28px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em}
+.lg-mark span{color:var(--accent);margin-left:.35em}
+.lg-sub{margin:0;color:var(--muted);font-size:13px}
+.lg-status{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;min-height:26px}
+.lg-status strong{font-size:17px}
+.lg-chip{font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:2px 9px;border-radius:10px;
+ background:var(--accent-soft);color:var(--accent)}
+.lg-moves{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+.lg-stage{position:relative}
+.lg-board{display:block;width:100%;max-width:640px;height:auto;border-radius:10px;background:#0e0d13;
+ image-rendering:pixelated;outline-offset:3px}
+.lg-final{padding:22px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.lg-final p{margin:0 0 8px}
+.lg-final .big{font-size:30px;font-weight:700}
+.lg-pad{display:flex;flex-wrap:wrap;gap:6px}
+.lg-pad button,.lg-reset{font:inherit;font-size:14px;min-width:44px;min-height:40px;padding:6px 12px;
+ border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer}
+.lg-pad button:hover,.lg-reset:hover{border-color:var(--accent)}
+.lg-pad kbd{font:inherit;font-size:11px;color:var(--muted);margin-left:4px}
+.lg-keys{margin:0;font-size:13px;color:var(--muted)}
+.lg-note{margin:0;font-size:14px;color:var(--muted);min-height:22px}
+.lg-note strong{color:var(--ink)}
+.lg-note .good{color:var(--good)}.lg-note .bad{color:var(--bad)}
+.lg-score{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;font-size:14px;border-top:1px solid var(--line);
+ padding-top:12px}
+.lg-score .label{color:var(--muted)}
+.lg-score strong{font-variant-numeric:tabular-nums}
+.lg-reset{margin-left:auto;font-size:13px;min-height:32px}
+.lg-error{color:var(--bad)}
+@media (max-width:520px){.lg-mark{font-size:22px}.lg-moves{margin-left:0}}
