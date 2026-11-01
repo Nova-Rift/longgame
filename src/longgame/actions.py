@@ -21,7 +21,7 @@ Each observation lists the actions its world accepts in ``available_actions``. S
 from __future__ import annotations
 
 import operator
-from enum import IntEnum
+from enum import Enum, IntEnum
 from typing import Union
 
 from . import engine
@@ -48,9 +48,12 @@ class Action(IntEnum):
 
     @classmethod
     def coerce(cls, value: Union["Action", int, str]) -> "Action":
-        """Accept an :class:`Action`, its id, or a name such as ``"up"``, ``"ACTION1"`` or ``"restart"``."""
+        """Accept an :class:`Action`, its id, a name such as ``"up"``, ``"ACTION1"`` or ``"restart"``, or another
+        toolkit's action enum whose value is the id (such as ARC-AGI-3's ``GameAction.ACTION1``)."""
         if isinstance(value, cls):
             return value
+        if isinstance(value, Enum) and isinstance(value.value, int) and not isinstance(value.value, bool):
+            value = value.value
         if isinstance(value, bool):
             raise InvalidAction(f"Not an action: {value!r}")
         if isinstance(value, str):

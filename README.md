@@ -49,7 +49,7 @@ More in [examples/](examples/) and the [API reference](docs/api.md).
 |---|---|
 | Gymnasium | `import longgame.gym` then `gym.make("LongGame/practice-v0")` (needs `gymnasium`) |
 | Any language | `longgame serve`: JSON lines on stdin/stdout ([Node example](examples/node_agent.mjs)) |
-| ARC-AGI-3 agents | same action ids; `longgame.arc.frame_data(obs)` gives an ARC-style 64 × 64 frame |
+| ARC-AGI-3 agents | `longgame.arc.ArcEnvironment()` acts like the ARC toolkit's environment: `step(GameAction.ACTION1)` returns a `FrameData` with a 64 × 64 frame |
 
 ## Roadmap
 

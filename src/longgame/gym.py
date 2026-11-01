@@ -34,7 +34,7 @@ from .render import render_text
 
 
 class LongGameEnv(gymnasium.Env):
-    metadata = {"render_modes": ["ansi"]}
+    metadata = {"render_modes": ["ansi"], "render_fps": 4}
 
     def __init__(self, lifetime: Any = "practice-v0", size: Optional[int] = None, render_mode: Optional[str] = None):
         self.spec_ = load_spec(lifetime)

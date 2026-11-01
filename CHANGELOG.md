@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 (2026-10-31)
+
+- ARC-AGI-3 agents can play directly: `longgame.arc.ArcEnvironment` has the ARC toolkit environment's interface
+  and returns real `FrameData` objects when `arcengine` is installed; `step` accepts ARC's `GameAction` members
+  (0.1.0 rejected them).
+- Gymnasium environment declares `render_fps`.
+
 ## 0.1.0 (2026-10-31)
 
 First public release.

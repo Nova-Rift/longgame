@@ -176,6 +176,23 @@ score and the final `info` the full scorecard.
 
 ## ARC-AGI-3 bridge
 
+```python
+from arcengine import GameAction          # optional (needs Python 3.12+); plain ids 0-7 work too
+from longgame.arc import ArcEnvironment
+
+env = ArcEnvironment("practice-v0")
+frame = env.reset()                       # an arcengine FrameData (or a look-alike ArcFrame without arcengine)
+frame = env.step(GameAction.ACTION1)
+env.action_space                          # [GameAction.RESET, GameAction.ACTION1, ..., GameAction.ACTION5]
+print(env.scorecard())
+```
+
+`ArcEnvironment` has the ARC toolkit environment's `reset()`, `step(action, data=None, reasoning=None)`,
+`action_space` and `observation_space`, so an ARC-AGI-3 agent loop can play a lifetime unchanged. Two differences:
+the first `reset()` starts the lifetime and later ones restart the current level (counting an action, like RESET),
+because a lifetime is never wiped; and once the lifetime is over, actions and resets change nothing (`env.done`).
+`Lifetime.step` also accepts `GameAction` members directly.
+
 `longgame.arc.frame_data(obs)` returns a dict shaped like ARC-AGI-3's `FrameData`: `game_id` (`lifetime/world`),
 `frame` (a list holding one 64 × 64 grid padded with wall colour; empty once the lifetime is over), `state`
 (`NOT_FINISHED`; at the end `WIN` if every level was finished, else `GAME_OVER`), `levels_completed` (levels of the

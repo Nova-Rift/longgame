@@ -22,6 +22,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install
         run: python -m pip install ".[gym]"
+      - name: Install the ARC-AGI toolkit's types where supported (Python 3.12+)
+        run: python -m pip install arcengine || echo "arcengine needs Python 3.12+; its test is skipped"
       - name: Test (against the installed package)
         run: |
           cd tests

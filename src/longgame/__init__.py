@@ -15,7 +15,7 @@ Quick start::
     print(env.scorecard())
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from . import arc
 from .actions import Action, InvalidAction
