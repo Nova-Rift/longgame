@@ -162,6 +162,26 @@ held-out pairs. This is a first, public version of the held-out idea: the real e
 that are not in the public code at all. One engine runs everywhere: fast and headless for reinforcement
 learning, a Python (Gymnasium-style) API, a JSON-lines command line for any language, and a browser player for people.
 
+## Gated worlds: levels that cannot be finished without what an earlier world taught
+
+Direction from Clark (Nov 1, 2026). Today every level is solvable from scratch; earlier worlds only make an agent
+faster, and the explorer baseline still scores about 7%. That measures carry-over as a gradient. A **gated** world adds
+a hard yes/no signal: a later level depends on something that could only be learned earlier, with an action budget
+too tight to rediscover it by search. Examples: a marker cell whose meaning (safe, deadly, teleport) was taught in an
+early world and is never re-taught; a hidden rule (the switch that looks like a wall) shown once; a combination lock
+whose pattern an earlier world revealed. An agent that did not play, or has forgotten, the earlier world cannot finish
+the gated level at all, so a non-zero score on it is proof of retained learning rather than of search.
+
+Gated worlds complement, not replace, the solvable ones: all-or-nothing cannot tell "forgot a little" from "forgot
+everything", and that gradient is what the forgetting curves measure. In the weights track (context wiped at every
+visit) a gated level is only passable through what reached the weights, which is the test Clark wants: continual
+learning, not a long notebook. Hybrid agents (context for the current visit, weights for what keeps proving useful)
+are scored in the bounded-memory track.
+
+The same idea goes into the combat game on the GPU farm: level n of a combat lifetime requires a skill or a fact
+(an enemy pattern, a hidden hazard, a weapon rule) that only levels before n teach, so each new level is unbeatable for
+a fresh agent (see tools/gpu-farm/PLANNER.md, "Gated levels").
+
 ## Baselines (planned)
 
 - Random actions (v0: 1.8% overall).
@@ -188,7 +208,7 @@ learning, a Python (Gymnasium-style) API, a JSON-lines command line for any lang
    recordings anyone can verify, Gymnasium and JSON-lines interfaces, baselines and tests.
 2. **Done: toolkit v0.2.** The world maker: a level generator and lifetime generator over the v0 mechanics, with
    held-out rules; the first training release. Still to come in this step: a bigger mechanic library.
-3. Puzzle rooms, changed worlds, the full scorer and the three tracks.
+3. Gated worlds (above), puzzle rooms, changed worlds, the full scorer and the three tracks.
 4. Baseline agents.
 5. Human study: first-play baselines and lifetime sessions.
 6. Hidden semi-private and private lifetimes, a public leaderboard and a paper.
