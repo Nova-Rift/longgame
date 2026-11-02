@@ -56,15 +56,22 @@ test = longgame.make("heldout-v1-42")    # rules kept out of training: test on t
 
 #### Next: gated worlds, where only what you learned earlier can win.
 
-<p align="center"><img src="docs/figures/gate.svg" alt="Gated worlds: a fact taught in world J is the only way to win world K, where nothing is shown and no base can fall in time; a fresh agent scores 0" width="860"></p>
+<p align="center"><img src="docs/figures/gate.svg" alt="Gated worlds: a level makes the agent use a mechanic, and a later level can only be finished with it; an agent that did not learn it scores 0" width="860"></p>
 
 Today every level can be finished from scratch, so earlier worlds only make an agent faster. A gated world adds a
 hard test: the exit is behind a mechanic (a portal, a switch, a place to hold) that an earlier level made the agent
 use, and nothing in the level says which. Not a code to remember: a thing learned by playing. An agent that did not
 learn the earlier level scores zero, so a pass is proof that learning carried over, and in the weights track (context
-wiped at every visit) proof that it reached the weights rather than a notebook. The whole chain is built into the
-real-time Skirmish test on clarkwhitehead.com (every battle gated by what earlier battles taught); the world maker
-gets it in v0.3.
+wiped at every visit) proof that it reached the weights rather than a notebook. The world maker gets it in v0.3. It is
+already built as a real-time battle:
+
+<p align="center"><img src="docs/figures/skirmish.svg" alt="The Skirmish battle: the enemy base behind a ring of gates with a portal, a switch and the middle as the ways in; a bot that never learned them wins none" width="860"></p>
+
+[Skirmish](https://www.clarkwhitehead.com/arcade/skirmish/?mode=test) is the same test as a tiny StarCraft-style
+battle: 14 battles against a scripted bot, learn, remix and return, scored by par ÷ time. Every battle after the first
+can only be won with a mechanic an earlier battle made you use (a portal, a switch, holding the middle), and nothing
+says which. Agents play it through a JSON-lines harness; the bot itself, never having learned the mechanics, wins
+none of the 14.
 
 <br>
 
@@ -109,7 +116,7 @@ More in [examples/](examples/) (including [train, then test on held-out rules](e
 
 - [x] v0.1: practice lifetime, browser player, verifiable recordings, baselines
 - [x] v0.2: the world maker, endless generated worlds for training, with held-out rules for testing
-- [ ] v0.3: gated worlds (a glyph taught in one world is the only way to finish a later one; fresh agents score 0)
+- [ ] v0.3: gated worlds in the world maker (a mechanic met in one world is the only way out of a later one; fresh agents score 0)
 - [ ] More rules (gravity, conveyors, paint, chasers, …) for the world maker
 - [ ] Changed-rule worlds and long gaps between visits
 - [ ] ARC-style picture puzzles inside lifetimes

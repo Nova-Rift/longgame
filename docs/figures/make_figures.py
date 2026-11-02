@@ -215,6 +215,57 @@ def fig_gate():
                                     "be finished with it; an agent that did not learn it scores 0")
 
 
+def fig_skirmish():
+    """The Skirmish battle: the enemy base behind a ring of gates; the three ways in, each learned by needing it."""
+    W, H = 900, 330
+    cell, ox, oy = 11, 32, 96
+    cols, rows = 24, 16
+    body = [text(32, 46, "Skirmish: the same test as a real-time battle", 22, INK, 700),
+            text(32, 70, "14 battles against a scripted bot; the enemy base sits behind gates, and the way in is "
+                         "something an earlier battle made you use", 13, INK2)]
+    body.append(rect(ox, oy, cols * cell, rows * cell, 8, "#3a352d"))
+    def sq(x, y, fill, extra=""):
+        return rect(ox + x * cell, oy + y * cell, cell, cell, 2, fill, extra)
+    # mines, walls, the middle
+    for (x, y) in [(5, 1), (5, 2), (4, 4), (1, 5), (2, 5), (18, 14), (18, 13), (19, 11), (22, 10), (21, 10),
+                   (18, 1), (18, 2), (19, 4), (22, 5), (21, 5), (5, 14), (5, 13), (4, 11), (1, 10), (2, 10)]:
+        body.append(sq(x, y, "#f2c230"))
+    for (x, y) in [(8, 1), (8, 2), (9, 2), (6, 6), (7, 6), (6, 7), (15, 1), (15, 2), (14, 2), (17, 6), (16, 6), (17, 7),
+                   (15, 14), (15, 13), (14, 13), (17, 9), (16, 9), (17, 8), (8, 14), (8, 13), (9, 13), (6, 9), (7, 9), (6, 8)]:
+        body.append(sq(x, y, "#77737f"))
+    for (x, y) in [(11, 7), (12, 7), (11, 8), (12, 8)]:
+        body.append(sq(x, y, "#8b877c"))
+    # the enemy's ring (x >= 18, y >= 10) in red, its base, the player's base
+    for x in range(17, 24):
+        body.append(sq(x, 9, "#de4a4f"))
+    for y in range(10, 16):
+        body.append(sq(17, y, "#de4a4f"))
+    body.append(rect(ox + 21 * cell, oy + 13 * cell, 2 * cell, 2 * cell, 3, "#de4a4f", ' stroke="#1d1b22"'))
+    body.append(rect(ox + 1 * cell, oy + 1 * cell, 2 * cell, 2 * cell, 3, "#3d7be8", ' stroke="#1d1b22"'))
+    # the three ways in: a portal pair, a switch, the hill
+    for (x, y) in [(10, 1), (19, 15)]:
+        body.append(f'<circle cx="{ox + x * cell + cell / 2:.1f}" cy="{oy + y * cell + cell / 2:.1f}" r="{cell * 0.36:.1f}" '
+                    f'fill="none" stroke="#b77cff" stroke-width="2.5"/>')
+    body.append(f'<circle cx="{ox + 21 * cell + cell / 2:.1f}" cy="{oy + 3 * cell + cell / 2:.1f}" r="{cell * 0.36:.1f}" '
+                f'fill="none" stroke="#ffd166" stroke-width="2.5"/>')
+    body.append(circle(ox + 21 * cell + cell / 2, oy + 3 * cell + cell / 2, cell * 0.12, "#ffd166"))
+    lx = ox + cols * cell + 40
+    items = [("#de4a4f", "Gates: only the enemy's units pass; its base cannot be hurt from outside"),
+             ("#b77cff", "A portal: a unit sent onto it comes out at the other end, inside"),
+             ("#ffd166", "A switch: stood on for ten seconds, it opens the ring it is wired to"),
+             ("#8b877c", "The middle: held alone for a minute, it wins the battle outright")]
+    for i, (colour, label) in enumerate(items):
+        y = oy + 14 + i * 40
+        body.append(rect(lx, y - 10, 14, 14, 3, colour))
+        body.append(text(lx + 22, y + 1, label, 12, INK2))
+    body.append(text(lx, oy + 14 + 4 * 40 + 2, "Battle 1 shows the middle's meter; battles 2 and 3 start you", 12, MUTED))
+    body.append(text(lx, oy + 14 + 4 * 40 + 18, "inside a ring with a portal, then a switch, as the only way out.", 12, MUTED))
+    body.append(text(lx, oy + 14 + 4 * 40 + 34, "After that nothing is explained. A bot that never learned", 12, MUTED))
+    body.append(text(lx, oy + 14 + 4 * 40 + 50, "the mechanics wins 0 of 14 battles.", 12, MUTED))
+    return svg(W, H, "".join(body), "The Skirmish battle: the enemy base behind a ring of gates with a portal, a switch "
+                                    "and the middle as the ways in; a bot that never learned them wins none")
+
+
 def fig_same_screen():
     rows = load_spec("practice-v0").visits[1].levels[0].map  # world B, level 1
     grid = first_grid(rows)
@@ -554,7 +605,7 @@ def fig_worlds_gif(path: Path) -> None:
 def main():
     figures = {"lifetime.svg": fig_lifetime(), "same-screen.svg": fig_same_screen(), "scoring.svg": fig_scoring(),
                "baselines.svg": fig_baselines(), "idea.svg": fig_idea(), "worlds.svg": fig_worlds(),
-               "gate.svg": fig_gate()}
+               "gate.svg": fig_gate(), "skirmish.svg": fig_skirmish()}
     for name, body in figures.items():
         (OUT / name).write_text(body)
     fig_gif(OUT / "play.gif")
