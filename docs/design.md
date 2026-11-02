@@ -167,10 +167,12 @@ learning, a Python (Gymnasium-style) API, a JSON-lines command line for any lang
 Direction from Clark (Nov 1, 2026). Today every level is solvable from scratch; earlier worlds only make an agent
 faster, and the explorer baseline still scores about 7%. That measures carry-over as a gradient. A **gated** world adds
 a hard yes/no signal: a later level depends on something that could only be learned earlier, with an action budget
-too tight to rediscover it by search. Examples: a marker cell whose meaning (safe, deadly, teleport) was taught in an
-early world and is never re-taught; a hidden rule (the switch that looks like a wall) shown once; a combination lock
-whose pattern an earlier world revealed. An agent that did not play, or has forgotten, the earlier world cannot finish
-the gated level at all, so a non-zero score on it is proof of retained learning rather than of search.
+too tight to rediscover it by search. Clark's rule (Nov 1, later the same day): not one gate but a chain, "between
+each game": every level teaches a fact and the next level demands it. The form built first (Skirmish): each level
+lights a pair of glyphs (a combination: first this square, then that), and the next level demands the previous pair
+unlit, with the glyphs shuffled onto other squares; a wrong hold resets the lock, so the 56 pairs cannot be tried
+out in time. An agent that did not play, or has forgotten, the earlier level cannot finish the next at all, so a
+non-zero score on any level after the first is proof of retained learning rather than of search.
 
 Gated worlds complement, not replace, the solvable ones: all-or-nothing cannot tell "forgot a little" from "forgot
 everything", and that gradient is what the forgetting curves measure. In the weights track (context wiped at every
@@ -178,9 +180,9 @@ visit) a gated level is only passable through what reached the weights, which is
 learning, not a long notebook. Hybrid agents (context for the current visit, weights for what keeps proving useful)
 are scored in the bounded-memory track.
 
-The same idea goes into the combat game on the GPU farm: level n of a combat lifetime requires a skill or a fact
-(an enemy pattern, a hidden hazard, a weapon rule) that only levels before n teach, so each new level is unbeatable for
-a fresh agent (see tools/gpu-farm/PLANNER.md, "Gated levels").
+Built (Nov 1) in the real-time Skirmish test (code/sites-trial, src/skirmish): all 14 battles chained by locks; a bot
+that reads the screen but remembers nothing wins at most the first; random orders win none. For the GPU farm's combat
+game, see tools/gpu-farm/PLANNER.md, "Gated levels".
 
 ## Baselines (planned)
 
