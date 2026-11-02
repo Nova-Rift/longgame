@@ -59,11 +59,12 @@ test = longgame.make("heldout-v1-42")    # rules kept out of training: test on t
 <p align="center"><img src="docs/figures/gate.svg" alt="Gated worlds: a fact taught in world J is the only way to win world K, where nothing is shown and no base can fall in time; a fresh agent scores 0" width="860"></p>
 
 Today every level can be finished from scratch, so earlier worlds only make an agent faster. A gated world adds a
-hard test: each level teaches one fact (a pair of glyphs, lit) and demands the previous level's fact unlit, with the
-glyphs moved and a budget too tight to find it by trial. An agent that did not learn the level before scores zero on
-the next, so every pass after the first is proof that learning carried over, and in the weights track (context wiped
-at every visit) proof that it reached the weights rather than a notebook. The whole chain is built into the real-time
-Skirmish test on clarkwhitehead.com (every battle locked by the one before it); the world maker gets it in v0.3.
+hard test: the exit is behind a mechanic (a portal, a switch, a place to hold) that an earlier level made the agent
+use, and nothing in the level says which. Not a code to remember: a thing learned by playing. An agent that did not
+learn the earlier level scores zero, so a pass is proof that learning carried over, and in the weights track (context
+wiped at every visit) proof that it reached the weights rather than a notebook. The whole chain is built into the
+real-time Skirmish test on clarkwhitehead.com (every battle gated by what earlier battles taught); the world maker
+gets it in v0.3.
 
 <br>
 

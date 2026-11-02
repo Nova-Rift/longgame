@@ -162,12 +162,17 @@ def fig_gate():
             text(32, 70, "Every level is locked by the lesson of the one before it: pass it and the learning is "
                          "proven", 13, INK2)]
 
-    def mark(x, y, s, dots, lit=False):
-        out = [rect(x, y, s, s, 3, "#6b5d8c" if not lit else "#9b7fe0")]
-        pts = {1: [(0.5, 0.5)], 2: [(0.3, 0.3), (0.7, 0.7)], 3: [(0.3, 0.3), (0.5, 0.5), (0.7, 0.7)],
-               4: [(0.3, 0.3), (0.7, 0.3), (0.3, 0.7), (0.7, 0.7)]}[dots]
-        out += [circle(x + px * s, y + py * s, s * 0.09, "#f3eefc") for px, py in pts]
-        return "".join(out)
+    def mark(x, y, s, kind, lit=False):
+        """A square of the level: ground, a gate (hatched), or the switch (a ring), lit when the level points it out."""
+        if kind == 4:
+            out = [rect(x, y, s, s, 3, "#9b7fe0" if lit else "#6b5d8c"),
+                   f'<circle cx="{x + s / 2:.1f}" cy="{y + s / 2:.1f}" r="{s * 0.3:.1f}" fill="none" '
+                   f'stroke="#ffd166" stroke-width="3"/>', circle(x + s / 2, y + s / 2, s * 0.1, "#ffd166")]
+            return "".join(out)
+        if kind == 2:
+            return (rect(x, y, s, s, 3, "#4a3a26") +
+                    "".join(rect(x + s * k, y + 2, s * 0.16, s - 4, 1, "#a07a4a") for k in (0.1, 0.42, 0.74)))
+        return rect(x, y, s, s, 3, "#2a2838")
 
     def world(x, y, title, colour, glyph_order, show_meter, clock, note):
         w, h = 236, 150
@@ -185,15 +190,15 @@ def fig_gate():
         out.append(text(x + 18, y + 134, note, 11, MUTED))
         return "".join(out)
 
-    body.append(world(32, 96, "Level n: the lesson", LEARN, [1, 2, 3, 4], True, "pair 3 then 4, lit",
-                      "holding the lit pair opens this level"))
+    body.append(world(32, 96, "Level n: the lesson", LEARN, [1, 2, 3, 4], True, "a switch opens the way out",
+                      "the agent has to use it to get anywhere"))
     body.append(arrow(276, 171, 316, 171))
     body.append(rect(320, 140, 90, 62, 10, FLOOR))
     body.append(text(365, 166, "other", 12, INK2, 400, "middle"))
     body.append(text(365, 184, "worlds…", 12, INK2, 400, "middle"))
     body.append(arrow(416, 171, 456, 171))
-    body.append(world(460, 96, "Level n+1: the gate", GATE, [3, 1, 4, 2], False, "demands 3 then 4, unlit",
-                      "and lights its own pair for level n+2"))
+    body.append(world(460, 96, "Level n+1: the gate", GATE, [2, 1, 4, 3], False, "the exit is behind a switch",
+                      "nothing says so; the agent must know"))
     body.append(text(720, 128, "fresh agent", 12, INK2))
     body.append(rect(720, 136, 120, 10, 5, LINE))
     body.append(text(848, 145, "0%", 12, GATE, 700))
@@ -206,8 +211,8 @@ def fig_gate():
     body.append(text(720, 258, "that reached the weights passes.", 11, MUTED))
     body.append(text(32, 276, "Solvable levels still measure how much carries over; gated levels prove that something did.",
                      13, INK2))
-    return svg(W, H, "".join(body), "Gated worlds: each level lights a pair of glyphs and the next level demands it "
-                                    "unlit; an agent that did not learn the level before scores 0")
+    return svg(W, H, "".join(body), "Gated worlds: a level makes the agent use a mechanic, and a later level can only "
+                                    "be finished with it; an agent that did not learn it scores 0")
 
 
 def fig_same_screen():

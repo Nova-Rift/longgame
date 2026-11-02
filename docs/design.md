@@ -168,11 +168,13 @@ Direction from Clark (Nov 1, 2026). Today every level is solvable from scratch; 
 faster, and the explorer baseline still scores about 7%. That measures carry-over as a gradient. A **gated** world adds
 a hard yes/no signal: a later level depends on something that could only be learned earlier, with an action budget
 too tight to rediscover it by search. Clark's rule (Nov 1, later the same day): not one gate but a chain, "between
-each game": every level teaches a fact and the next level demands it. The form built first (Skirmish): each level
-lights a pair of glyphs (a combination: first this square, then that), and the next level demands the previous pair
-unlit, with the glyphs shuffled onto other squares; a wrong hold resets the lock, so the 56 pairs cannot be tried
-out in time. An agent that did not play, or has forgotten, the earlier level cannot finish the next at all, so a
-non-zero score on any level after the first is proof of retained learning rather than of search.
+each game": every level teaches something and the next level demands it. And (Clark, the same evening) the thing
+taught must be a game mechanic learned by playing, never a code, word or number to remember. The form built first
+(Skirmish): a level makes the player use a mechanic (a portal that carries units, a switch that opens a ring of gates,
+holding the middle) to get anywhere, and a later level puts the enemy's base behind a ring whose only way in is that
+mechanic, with nothing to say which. An agent that did not play, or has forgotten, the earlier level cannot finish the
+next (a scripted bot that never learned the mechanics wins nothing), so a non-zero score on any level after the first
+is proof of retained learning rather than of search.
 
 Gated worlds complement, not replace, the solvable ones: all-or-nothing cannot tell "forgot a little" from "forgot
 everything", and that gradient is what the forgetting curves measure. In the weights track (context wiped at every
@@ -180,9 +182,9 @@ visit) a gated level is only passable through what reached the weights, which is
 learning, not a long notebook. Hybrid agents (context for the current visit, weights for what keeps proving useful)
 are scored in the bounded-memory track.
 
-Built (Nov 1) in the real-time Skirmish test (code/sites-trial, src/skirmish): all 14 battles chained by locks; a bot
-that reads the screen but remembers nothing wins at most the first; random orders win none. For the GPU farm's combat
-game, see tools/gpu-farm/PLANNER.md, "Gated levels".
+Built (Nov 1) in the real-time Skirmish test (code/sites-trial, src/skirmish): all 14 battles gated by mechanics
+taught earlier; a bot that never learned them wins none; random orders win none. For the GPU farm's combat game, see
+tools/gpu-farm/PLANNER.md, "Gated levels".
 
 ## Baselines (planned)
 
