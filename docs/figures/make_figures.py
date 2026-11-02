@@ -266,6 +266,231 @@ def fig_skirmish():
                                     "and the middle as the ways in; a bot that never learned them wins none")
 
 
+# --- Skirmish figures: the real-time battle, drawn from the same layout the site uses --------------------------------
+
+SK_W, SK_H = 24, 16
+SK_QUARTER = {"base": (1, 1), "gold": [(5, 1), (5, 2), (4, 4), (1, 5), (2, 5)],
+              "walls": [(8, 1), (8, 2), (9, 2), (6, 6), (7, 6), (6, 7)], "mud": [(8, 4), (9, 4), (9, 5), (10, 5), (10, 6)]}
+SK_MIDDLE = [(11, 7), (12, 7), (11, 8), (12, 8)]
+SK_RINGS = {0: [(x, 9) for x in range(10)] + [(9, y) for y in range(9)],
+            1: [(x, 6) for x in range(7)] + [(6, y) for y in range(6)],
+            2: [(x, 5) for x in range(6)] + [(5, y) for y in range(5)]}
+SK_SPOT = {"portalInInner": (4, 0), "portalInOuter": (8, 0), "portalOutside": (10, 1), "switchInsideOuter": (8, 7),
+           "switchOutside": (2, 3), "exitPortalIn": (4, 0), "exitPortalOut": (7, 3), "exitSwitch": (0, 4)}
+SK_SEATS = ["#3d7be8", "#d99a12", "#de4a4f", "#2f9a4c"]
+SK_RUN = [("A", "learn", 0, 2, ["hill"], "hill"), ("B", "learn", 0, 2, ["hill"], "portal"),
+          ("C", "learn", 0, 2, ["portal"], "switch"), ("D", "learn", 0, 2, ["switch"], None),
+          ("E", "learn", 0, 2, ["portal"], None), ("F", "learn", 0, 2, ["hill"], None),
+          ("G", "remix", 0, 2, ["switch", "portal"], None), ("H", "remix", 0, 2, ["portal", "switch"], None),
+          ("I", "remix", 0, 2, ["switch", "portal"], None), ("B", "return", 1, 3, ["portal"], None),
+          ("C", "return", 1, 3, ["switch"], None), ("D", "return", 1, 3, ["hill"], None),
+          ("E", "return", 1, 3, ["switch"], None), ("F", "return", 1, 3, ["portal"], None)]
+SK_WORLDS = {"A": {}, "B": {"mud": True}, "C": {"portals": True}, "D": {"archers": True}, "E": {"goal": "hill"},
+             "F": {"goal": "gold"}, "G": {"mud": True, "archers": True}, "H": {"portals": True, "goal": "hill"},
+             "I": {"archers": True, "goal": "gold"}}
+
+
+def sk_mirror(x, y, seat):
+    return (SK_W - 1 - x if seat in (1, 2) else x, SK_H - 1 - y if seat >= 2 else y)
+
+
+def sk_map(battle):
+    """The squares of one test battle: what kind sits where (engine.ts newGame, in miniature)."""
+    world, _, you, enemy, need, teach = battle
+    rules = SK_WORLDS[world]
+    kinds = {}
+    for seat in range(4):
+        for c in SK_QUARTER["walls"]:
+            kinds[sk_mirror(*c, seat)] = "wall"
+        for c in SK_QUARTER["gold"]:
+            kinds[sk_mirror(*c, seat)] = "gold"
+        if rules.get("mud"):
+            for c in SK_QUARTER["mud"]:
+                kinds[sk_mirror(*c, seat)] = "mud"
+    for c in SK_MIDDLE:
+        kinds[c] = "hill" if "hill" in need else "gold"
+    def ring(seat, r, kind):
+        for c in SK_RINGS[r]:
+            m = sk_mirror(*c, seat)
+            if kinds.get(m) not in ("gold", "wall"):
+                kinds[m] = kind
+    at = lambda spot, seat: sk_mirror(*SK_SPOT[spot], seat)
+    for k, way in enumerate(need):
+        r = k if len(need) == 2 else 1
+        inner, outer_too = r == 1, len(need) == 2
+        ring(enemy, r, f"gate{enemy}")
+        if way == "portal":
+            out = at("portalInOuter", enemy) if inner and outer_too else at("portalOutside", you)
+            inn = at("portalInInner" if inner else "portalInOuter", enemy)
+            kinds[out] = kinds[inn] = "portal"
+        elif way == "switch":
+            c = at("switchInsideOuter", enemy) if inner and outer_too else at("switchOutside", (you + 1) % 4)
+            kinds[c] = "switch"
+    if teach in ("portal", "switch"):
+        ring(you, 2, "gateX")
+        if teach == "portal":
+            kinds[at("exitPortalIn", you)] = kinds[at("exitPortalOut", you)] = "portal"
+        else:
+            kinds[at("exitSwitch", you)] = "switch"
+    units = {}
+    for seat in (you, enemy):
+        bx, by = sk_mirror(*SK_QUARTER["base"], seat)
+        bx2, by2 = sk_mirror(SK_QUARTER["base"][0] + 1, SK_QUARTER["base"][1] + 1, seat)
+        units[(min(bx, bx2), min(by, by2))] = ("base", seat)
+    return kinds, units
+
+
+SK_FILL = {"wall": "#77737f", "gold": "#f2c230", "mud": "#56603a", "hill": "#8b877c", "gateX": "#8d80ad",
+           "gate0": SK_SEATS[0], "gate1": SK_SEATS[1], "gate2": SK_SEATS[2], "gate3": SK_SEATS[3]}
+
+
+def sk_minimap(battle, x, y, cell):
+    kinds, units = sk_map(battle)
+    body = [rect(x, y, SK_W * cell, SK_H * cell, cell * 0.7, "#3a352d")]
+    for (cx, cy), kind in kinds.items():
+        px, py = x + cx * cell, y + cy * cell
+        if kind == "portal":
+            body.append(f'<circle cx="{px + cell / 2:.1f}" cy="{py + cell / 2:.1f}" r="{cell * 0.36:.1f}" fill="none" '
+                        f'stroke="#b77cff" stroke-width="{max(1.2, cell * 0.22):.1f}"/>')
+        elif kind == "switch":
+            body.append(f'<circle cx="{px + cell / 2:.1f}" cy="{py + cell / 2:.1f}" r="{cell * 0.36:.1f}" fill="none" '
+                        f'stroke="#ffd166" stroke-width="{max(1.2, cell * 0.22):.1f}"/>')
+        else:
+            body.append(rect(px, py, cell, cell, min(2, cell * 0.2), SK_FILL[kind]))
+    for (bx, by), (_, seat) in units.items():
+        body.append(rect(x + bx * cell, y + by * cell, 2 * cell, 2 * cell, cell * 0.3, SK_SEATS[seat],
+                         ' stroke="#1d1b22" stroke-width="0.8"'))
+    return "".join(body)
+
+
+def sk_pars():
+    return json.loads((OUT / "skirmish-pars.json").read_text())
+
+
+def sk_clock(ticks):
+    sec = round(ticks / 10)
+    return f"{sec // 60}:{sec % 60:02d}"
+
+
+def fig_sk_run():
+    """The 14 battles in order, with the way into each (never shown to the player)."""
+    cell, slot, x0, W = 4, 112, 196, 900
+    maph = SK_H * cell
+    rows = [("1", "Learn", LEARN, "6 new worlds", "learn"), ("2", "Remix", REMIX, "two rules, two rings", "remix"),
+            ("3", "Return", RETURN, "old worlds, other corner", "return")]
+    way_name = {"hill": "hold the middle", "portal": "portal in", "switch": "switch"}
+    shows = {"hill": "meter shown", "portal": "shows a portal", "switch": "shows a switch"}
+    body = [text(32, 46, "One run", 22, INK, 700),
+            text(32, 70, "14 battles in order against the same bot, by one player that is never reset. Under each: "
+                         "the way in, which the battle itself never says.", 13, INK2)]
+    y = 96
+    for num, phase, colour, note, key in rows:
+        battles = [b for b in SK_RUN if b[1] == key]
+        body.append(rect(32, y, 6, maph + 30, 3, colour))
+        body.append(text(50, y + 22, f"{num}  {phase}", 17, INK, 700))
+        body.append(text(50, y + 42, note, 12, INK2))
+        for i, b in enumerate(battles):
+            bx = x0 + i * slot + (slot - 16 - SK_W * cell) / 2
+            body.append(sk_minimap(b, bx, y, cell))
+            label = b[0] if key != "return" else f"{b[0]} again"
+            body.append(text(x0 + i * slot + (slot - 16) / 2, y + maph + 18, label, 13, INK, 600, "middle"))
+            way = " + ".join(way_name[w] for w in b[4])
+            body.append(text(x0 + i * slot + (slot - 16) / 2, y + maph + 32, way, 9, MUTED, 400, "middle"))
+            if b[5]:
+                body.append(text(x0 + i * slot + (slot - 16) / 2, y + maph + 44, shows[b[5]], 9, LEARN, 400, "middle"))
+            if i < len(battles) - 1:
+                ax = x0 + (i + 1) * slot - 12
+                body.append(arrow(ax - 6, y + maph / 2, ax + 2, y + maph / 2))
+        y += maph + 70
+    body.append(text(32, y + 4, "Battle 1 shows the middle's meter. Battles 2 and 3 start you inside a ring, with a "
+                                "portal and then a switch as the only way out.", 13, INK2))
+    body.append(text(32, y + 24, "After that nothing is explained: the way in is always something you had to use before.",
+                     13, INK2))
+    return svg(W, y + 50, "".join(body), "One run: learn six worlds, play three remixes, return to five; the way into "
+                                         "every battle is a mechanic an earlier battle made you use")
+
+
+def fig_sk_same_screen():
+    """The same battle as plain shapes for people and as numbers for AI."""
+    kinds, units = sk_map(SK_RUN[3])
+    cell, top, W = 14, 108, 900
+    mapw = SK_W * cell
+    body = [text(32, 46, "Same screen for people and AI", 22, INK, 700),
+            text(32, 70, "Plain shapes, no names, no instructions. Nobody is told what a swirl, a ring or a plate does.",
+                 13, INK2),
+            text(32, top - 14, "What a person sees", 14, INK, 600), sk_minimap(SK_RUN[3], 32, top, cell)]
+    ids = {None: 0, "wall": 1, "gold": 2, "mud": 3, "portal": 4, "hill": 6, "gate2": 8, "gate0": 7, "gateX": 8, "switch": 9}
+    nx = 32 + mapw + 60
+    body.append(text(nx, top - 14, "What an AI gets", 14, INK, 600))
+    body.append(text(nx, top + 16, 'obs["terrain"]', 13, "#c9b8f0", 400, "start", MONO))
+    for r in range(8, 16):
+        row = " ".join(str(ids.get(kinds.get((c, r)), 0)) for c in range(13, 24))
+        body.append(text(nx, top + 40 + (r - 8) * 19, "… " + row, 14, INK, 400, "start", MONO))
+    body.append(text(nx, top + 40 + 8 * 19 + 10, "0 ground · 1 wall · 2 gold · 3 mud · 4 portal · 6 middle", 11, MUTED))
+    body.append(text(nx, top + 40 + 8 * 19 + 26, "7 your gates · 8 gates you cannot pass · 9 a switch", 11, MUTED))
+    return svg(W, top + SK_H * cell + 40, "".join(body), "The same battle shown as plain shapes for people and as a "
+                                                           "grid of numbers for AI")
+
+
+def fig_sk_scoring():
+    pars = sk_pars()
+    par = pars["battles"][0]["par"]
+    W, x0, x1, top = 900, 220, 800, 128
+    scale = (x1 - x0) / (2.4 * par)
+    rows = [(f"Won in {sk_clock(par)}", par, True), (f"Won in {sk_clock(2 * par)}", 2 * par, True),
+            (f"Never got in", 3600, False)]
+    body = [text(32, 46, "How a battle is scored", 22, INK, 700),
+            text(32, 70, "score = par ÷ your time. Par: the fastest win 216 scripted strategies found, by one that "
+                         "knows the mechanics.", 13, INK2)]
+    body.append(f'<path d="M{x0} {top - 10}v-6H{x0 + par * scale:.1f}v6" fill="none" stroke="{REMIX}" stroke-width="1.6"/>')
+    body.append(text(x0 + par * scale / 2, top - 22, f"par = {sk_clock(par)}", 12, INK, 600, "middle"))
+    for i, (label, t, won) in enumerate(rows):
+        y = top + i * 44
+        score = min(1, par / t) if won else 0
+        body.append(text(32, y + 12, label, 14, INK))
+        body.append(rect(x0, y, min(t * scale, x1 - x0), 15, 4, LEARN if won else "#5d5a6b", "" if won else ' opacity=".55"'))
+        body.append(text(868, y + 13, f"{round(100 * score)}%", 18, INK, 700, "end"))
+    body.append(text(32, top + 3 * 44 + 14, "Six minutes a battle; out of time is a draw and scores 0. A phase scores "
+                                           "the mean of its battles; the run the mean of the phases.", 13, INK2))
+    return svg(W, top + 3 * 44 + 48, "".join(body), "Scoring: par divided by your time; zero if you never get in")
+
+
+def fig_sk_baselines():
+    pars = sk_pars()
+    series = [("the bot you fight, never having learned the mechanics", pars["scripted"], "#3987e5"),
+              (f"random orders ({pars['random']['seeds']} runs)", pars["random"], "#d95926")]
+    cats = [("Learn", "learn"), ("Remix", "remix"), ("Return", "return"), ("Overall", "overall")]
+    W, x0, x1, top, bar, group = 900, 130, 800, 128, 14, 52
+    bottom = top + len(cats) * group
+    body = [text(32, 46, "Scores so far", 22, INK, 700),
+            text(32, 70, "Higher is better. A player that knows the mechanics and plays at par scores 100% everywhere.",
+                 13, INK2)]
+    lx = 32
+    for name, _, colour in series:
+        body.append(rect(lx, 88, 12, 12, 3, colour))
+        body.append(text(lx + 18, 99, name, 13, INK))
+        lx += 34 + len(name) * 7.2
+    for t in (0, 25, 50, 75, 100):
+        gx = x0 + (x1 - x0) * t / 100
+        body.append(f'<line x1="{gx:.1f}" y1="{top - 8}" x2="{gx:.1f}" y2="{bottom - 10}" stroke="{LINE}"/>')
+        body.append(text(gx, bottom + 6, f"{t}%", 12, MUTED, 400, "middle"))
+    for i, (label, key) in enumerate(cats):
+        y = top + i * group
+        body.append(text(x0 - 14, y + bar + 6, label, 14, INK, 600 if key == "overall" else 400, "end"))
+        for j, (_, data, colour) in enumerate(series):
+            v = 100 * data[key]
+            by = y + j * (bar + 2)
+            bw = (x1 - x0) * v / 100
+            if bw > 0.5:
+                body.append(rect(x0, by, bw, bar, 3, colour))
+            body.append(text(x0 + bw + 6, by + bar - 3, f"{v:.1f}%", 12, INK2))
+    body.append(text(32, bottom + 34, f"Neither wins a single battle of {pars['scripted']['total']}: without the "
+                                      "mechanics there is no way in. A learner that carries them forward should.",
+                     13, INK2))
+    return svg(W, bottom + 58, "".join(body), "Bar chart of scores by phase: the bot that never learned the mechanics "
+                                              "and random orders both score zero")
+
+
 def fig_same_screen():
     rows = load_spec("practice-v0").visits[1].levels[0].map  # world B, level 1
     grid = first_grid(rows)
@@ -605,7 +830,9 @@ def fig_worlds_gif(path: Path) -> None:
 def main():
     figures = {"lifetime.svg": fig_lifetime(), "same-screen.svg": fig_same_screen(), "scoring.svg": fig_scoring(),
                "baselines.svg": fig_baselines(), "idea.svg": fig_idea(), "worlds.svg": fig_worlds(),
-               "gate.svg": fig_gate(), "skirmish.svg": fig_skirmish()}
+               "gate.svg": fig_gate(), "skirmish.svg": fig_skirmish(), "skirmish-run.svg": fig_sk_run(),
+               "skirmish-same-screen.svg": fig_sk_same_screen(), "skirmish-scoring.svg": fig_sk_scoring(),
+               "skirmish-baselines.svg": fig_sk_baselines()}
     for name, body in figures.items():
         (OUT / name).write_text(body)
     fig_gif(OUT / "play.gif")

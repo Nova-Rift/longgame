@@ -1,0 +1,292 @@
+{
+ "battles": [
+  {
+   "world": "A",
+   "phase": "learn",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "hill"
+    ],
+    "teach": "hill"
+   },
+   "par": 628,
+   "style": {
+    "workers": 7,
+    "firstWave": 2,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "B",
+   "phase": "learn",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "hill"
+    ],
+    "teach": "portal"
+   },
+   "par": 637,
+   "style": {
+    "workers": 4,
+    "firstWave": 2,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "C",
+   "phase": "learn",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "portal"
+    ],
+    "teach": "switch"
+   },
+   "par": 1311,
+   "style": {
+    "workers": 4,
+    "firstWave": 5,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "D",
+   "phase": "learn",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "switch"
+    ],
+    "teach": null
+   },
+   "par": 1146,
+   "style": {
+    "workers": 8,
+    "firstWave": 8,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "E",
+   "phase": "learn",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "portal"
+    ],
+    "teach": null
+   },
+   "par": 1090,
+   "style": {
+    "workers": 7,
+    "firstWave": 4,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "F",
+   "phase": "learn",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "hill"
+    ],
+    "teach": null
+   },
+   "par": 628,
+   "style": {
+    "workers": 7,
+    "firstWave": 2,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "G",
+   "phase": "remix",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "switch",
+     "portal"
+    ],
+    "teach": null
+   },
+   "par": 1380,
+   "style": {
+    "workers": 9,
+    "firstWave": 7,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "H",
+   "phase": "remix",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "portal",
+     "switch"
+    ],
+    "teach": null
+   },
+   "par": 1816,
+   "style": {
+    "workers": 7,
+    "firstWave": 4,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "I",
+   "phase": "remix",
+   "you": 0,
+   "enemy": 2,
+   "gate": {
+    "need": [
+     "switch",
+     "portal"
+    ],
+    "teach": null
+   },
+   "par": 1517,
+   "style": {
+    "workers": 6,
+    "firstWave": 5,
+    "waveGrowth": 2,
+    "knows": true
+   }
+  },
+  {
+   "world": "B",
+   "phase": "return",
+   "you": 1,
+   "enemy": 3,
+   "gate": {
+    "need": [
+     "portal"
+    ],
+    "teach": null
+   },
+   "par": 967,
+   "style": {
+    "workers": 6,
+    "firstWave": 5,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "C",
+   "phase": "return",
+   "you": 1,
+   "enemy": 3,
+   "gate": {
+    "need": [
+     "switch"
+    ],
+    "teach": null
+   },
+   "par": 1132,
+   "style": {
+    "workers": 5,
+    "firstWave": 8,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "D",
+   "phase": "return",
+   "you": 1,
+   "enemy": 3,
+   "gate": {
+    "need": [
+     "hill"
+    ],
+    "teach": null
+   },
+   "par": 636,
+   "style": {
+    "workers": 9,
+    "firstWave": 2,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "E",
+   "phase": "return",
+   "you": 1,
+   "enemy": 3,
+   "gate": {
+    "need": [
+     "switch"
+    ],
+    "teach": null
+   },
+   "par": 1132,
+   "style": {
+    "workers": 5,
+    "firstWave": 8,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  },
+  {
+   "world": "F",
+   "phase": "return",
+   "you": 1,
+   "enemy": 3,
+   "gate": {
+    "need": [
+     "portal"
+    ],
+    "teach": null
+   },
+   "par": 1026,
+   "style": {
+    "workers": 7,
+    "firstWave": 4,
+    "waveGrowth": 0,
+    "knows": true
+   }
+  }
+ ],
+ "scripted": {
+  "learn": 0,
+  "remix": 0,
+  "return": 0,
+  "overall": 0,
+  "played": 14,
+  "total": 14,
+  "won": 0
+ },
+ "random": {
+  "learn": 0,
+  "remix": 0,
+  "return": 0,
+  "overall": 0,
+  "played": 14,
+  "total": 14,
+  "seeds": 5,
+  "won": 0
+ }
+}

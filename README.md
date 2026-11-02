@@ -2,129 +2,99 @@
 
 # Can an AI keep learning new games without forgetting the old ones?
 
-<p align="center"><img src="docs/figures/play.gif" alt="A short level being played: push the crate across the ice onto the pad, pick up the key, open the door, reach the exit" width="460"></p>
+<p align="center"><img src="docs/figures/skirmish.svg" alt="The Skirmish battle: the enemy base behind a ring of gates with a portal, a switch and the middle as the ways in; a bot that never learned them wins none" width="860"></p>
 
 <p align="center"><img src="docs/figures/idea.svg" alt="ARC-AGI scores each task on its own; Long Game scores what carries over across one lifetime" width="860"></p>
 
 People hold on to what they learn for years, and adapt when something familiar changes without throwing the rest away.
 Neural networks trained on one thing after another tend to do the opposite: new learning overwrites old. Long Game
-measures that, with games that are easy for people and hard for AI, in the spirit of [ARC-AGI](https://arcprize.org/arc-agi).
+measures that with [Skirmish](https://www.clarkwhitehead.com/arcade/skirmish/?mode=test), a tiny real-time battle in
+the spirit of StarCraft, easy for people and hard for AI, scored the way [ARC-AGI](https://arcprize.org/arc-agi)
+scores: against people, with no instructions.
 
 <br>
 
-## One agent plays one long lifetime of tiny games, and is never reset.
+## One player fights one long run of battles, and is never reset.
 
-<p align="center"><img src="docs/figures/lifetime.svg" alt="One lifetime: learn worlds A to F, play remixes G, H and I, return to B to F with new levels" width="860"></p>
+<p align="center"><img src="docs/figures/skirmish-run.svg" alt="One run: learn six worlds, play three remixes, return to five; the way into every battle is a mechanic an earlier battle made you use" width="860"></p>
 
-<p align="center"><img src="docs/figures/same-screen.svg" alt="The same screen shown as a picture for people and as a grid of numbers for AI" width="700"></p>
+<p align="center"><img src="docs/figures/skirmish-same-screen.svg" alt="The same battle shown as plain shapes for people and as a grid of numbers for AI" width="860"></p>
 
-No instructions: finishing a level is the only feedback. The agent is told when a new visit starts, but not which world
-it is, so recognising an old friend is part of the test. The screen and keys match the ARC-AGI-3 format, so ARC-AGI-3
-agents can play through a thin adapter.
-
-<br>
-
-### Scores count only what carries over.
-
-<p align="center"><img src="docs/figures/scoring.svg" alt="A level scores par divided by actions, and zero if the budget runs out" width="860"></p>
-
-<p align="center"><img src="docs/figures/baselines.svg" alt="Baseline scores: random keys 1.2% overall, explorer 7.8%; the explorer gets no better on remix or return" width="860"></p>
-
-Par is what a solver that knows the rules needs. The explorer searches each level from scratch, so it gains nothing on
-remixes or return visits. A continual learner should, and that gap is the whole point. Recordings replay every action, so
-a recording is proof of a score.
+Each world changes one hidden thing (mud, portals, archers, another way to win); remixes change two; return battles
+bring old worlds back from another corner. Nothing is explained: before each battle the player may watch three example
+battles between bots that know the world, then plays. People and AI see the same plain shapes.
 
 <br>
 
-#### Endless worlds: a new lifetime from any seed, with rules held out for testing.
-
-<p align="center"><img src="docs/figures/worlds.gif" alt="The solver finishing five levels made by the world maker: crates and ice, keys and gates, and the twin for training; keys and ice, and coins, held out for testing" width="460"></p>
-
-<p align="center"><img src="docs/figures/worlds.svg" alt="A chart of which rule combinations are for training and which are held out for testing, next to four generated levels" width="860"></p>
-
-Every generated level is checked by the solver, so it is always possible. Train on as many lifetimes as you like, then
-test on rule combinations the agent has never met: that split measures learning rather than memorising.
-
-```python
-import longgame
-
-env = longgame.make("train-v1-42")       # any seed: a new 28-level lifetime, every level solver-checked
-test = longgame.make("heldout-v1-42")    # rules kept out of training: test on these
-```
-
-<br>
-
-#### Next: gated worlds, where only what you learned earlier can win.
+### Every battle after the first can only be won with something an earlier battle taught.
 
 <p align="center"><img src="docs/figures/gate.svg" alt="Gated worlds: a level makes the agent use a mechanic, and a later level can only be finished with it; an agent that did not learn it scores 0" width="860"></p>
 
-Today every level can be finished from scratch, so earlier worlds only make an agent faster. A gated world adds a
-hard test: the exit is behind a mechanic (a portal, a switch, a place to hold) that an earlier level made the agent
-use, and nothing in the level says which. Not a code to remember: a thing learned by playing. An agent that did not
-learn the earlier level scores zero, so a pass is proof that learning carried over, and in the weights track (context
-wiped at every visit) proof that it reached the weights rather than a notebook. The world maker gets it in v0.3. It is
-already built as a real-time battle:
+The enemy base sits behind a ring of gates. The way in is a game mechanic: a portal that carries units inside, a
+switch that opens the ring, or holding the middle. Each is first met by needing it (the player starts inside a ring
+with a portal, then a switch, as the only way out), and from then on nothing says which one a battle needs. Not a code
+to remember: a thing learned by playing. A player that did not learn it cannot win, so every win after the first is
+proof that learning carried over, and, when the agent's context is wiped between battles, proof that it reached the
+weights rather than a notebook.
 
-<p align="center"><img src="docs/figures/skirmish.svg" alt="The Skirmish battle: the enemy base behind a ring of gates with a portal, a switch and the middle as the ways in; a bot that never learned them wins none" width="860"></p>
+<br>
 
-[Skirmish](https://www.clarkwhitehead.com/arcade/skirmish/?mode=test) is the same test as a tiny StarCraft-style
-battle: 14 battles against a scripted bot, learn, remix and return, scored by par ÷ time. Every battle after the first
-can only be won with a mechanic an earlier battle made you use (a portal, a switch, holding the middle), and nothing
-says which. Agents play it through a JSON-lines harness; the bot itself, never having learned the mechanics, wins
-none of the 14.
+#### Scores count only what carries over.
+
+<p align="center"><img src="docs/figures/skirmish-scoring.svg" alt="Scoring: par divided by your time; zero if you never get in" width="860"></p>
+
+<p align="center"><img src="docs/figures/skirmish-baselines.svg" alt="Bar chart of scores by phase: the bot that never learned the mechanics and random orders both score zero" width="860"></p>
+
+Par is the fastest win a search over 216 scripted strategies found, by one that knows the mechanics. The bot you fight
+never learned them and wins no battle; random orders win none. A continual learner should, and that gap is the whole
+point. Every battle is deterministic, so a recording of the orders is proof of a score.
 
 <br>
 
 ##### Play it yourself, or write an agent in a few lines.
 
-```bash
-pip install "git+https://github.com/Nova-Rift/longgame"
-
-longgame play            # play it yourself in the browser
-longgame play train-v1-7 # a lifetime the world maker made from seed 7
-longgame run explorer    # score a baseline agent
-```
-
-One object plays the whole lifetime, so whatever it stores between calls is its memory.
+Play in the browser at [clarkwhitehead.com/arcade/skirmish/?mode=test](https://www.clarkwhitehead.com/arcade/skirmish/?mode=test).
+An agent sees what a person sees, as numbers, and gives up to eight orders every half second of game time:
 
 ```python
-from longgame import Action, Agent, evaluate
+from skirmish import Skirmish          # the harness ships with the site; this repo gets it in v0.3
 
-class MyAgent(Agent):
-    def act(self, obs):          # obs.grid is the screen; obs.result says how the last level went
-        return Action.UP         # 0 restart · 1 up · 2 down · 3 left · 4 right · 5 interact
-
-if __name__ == "__main__":
-    print(evaluate(MyAgent(), record="runs/mine.jsonl"))
+with Skirmish() as env:
+    obs = env.reset()                   # battle 1 of 14; obs["terrain"], obs["units"], obs["gold"], obs["meters"]
+    while not obs["done"]:
+        obs, result = env.step(choose(obs))   # orders: move, attack, gather, train, rally, hold, stop
+    print(env.score())                  # learn, remix, return, overall
 ```
 
-```bash
-longgame run my_agent.py:MyAgent --record runs/mine.jsonl
-longgame verify runs/mine.jsonl  # replays every action: a recording is proof of a score
-```
+One object plays the whole run, so whatever it keeps between calls is its memory. Scores are reported in three tracks:
+weights only (context wiped at every battle), bounded memory, and open.
 
-More in [examples/](examples/) (including [train, then test on held-out rules](examples/train_then_test.py)) and the
-[API reference](docs/api.md).
+<br>
 
-| Also works with | |
+###### What the earlier puzzle worlds tested, and where it lives now
+
+Long Game began as a run of tiny grid puzzles (crates, keys, ice, switches, a mirrored twin). They are still in this
+repository as the `longgame` Python package (v0.2, with its world maker), but the test is now Skirmish, which keeps
+every part of them that mattered:
+
+| Tested in the puzzle worlds | In Skirmish |
 |---|---|
-| Gymnasium | `import longgame.gym` then `gym.make("LongGame/practice-v0")`, or `"LongGame/train-v1"` for a new generated lifetime every episode (needs `gymnasium`) |
-| Any language | `longgame serve`: JSON lines on stdin/stdout ([Node example](examples/node_agent.mjs)) |
-| ARC-AGI-3 agents | `longgame.arc.ArcEnvironment()` acts like the ARC toolkit's environment: `step(GameAction.ACTION1)` returns a `FrameData` with a 64 × 64 frame |
+| One lifetime, never reset: learn, remix, return | One run of 14 battles: learn A–F, remix G–I, return B–F from another corner |
+| No instructions; the same screen for people and AI | Plain shapes and numbers; three example battles instead of a rulebook |
+| Par-based scores that count only what carries over | par ÷ time for a win, 0 for a loss or a draw |
+| A baseline that forgets everything, to beat | The bot you fight, never having learned the mechanics: 0 of 14 |
+| Solver-checked levels, so every one is possible | Every battle won by a scripted strategy that knows the mechanics (that win sets par) |
+| Verifiable recordings | Deterministic battles: a recording of the orders replays the score |
+| Held-out rules, so a high score is learning, not memorising | Coming: hidden battles with mechanics not in the public set |
+| Gated levels: later levels unwinnable without earlier ones | Built in: every battle after the first |
 
 ###### Roadmap
 
-- [x] v0.1: practice lifetime, browser player, verifiable recordings, baselines
-- [x] v0.2: the world maker, endless generated worlds for training, with held-out rules for testing
-- [ ] v0.3: gated worlds in the world maker (a mechanic met in one world is the only way out of a later one; fresh agents score 0)
-- [ ] More rules (gravity, conveyors, paint, chasers, …) for the world maker
-- [ ] Changed-rule worlds and long gaps between visits
-- [ ] ARC-style picture puzzles inside lifetimes
-- [ ] Human baselines, hidden test lifetimes, a leaderboard
-
-The full plan, and how every ARC-AGI test maps onto Long Game: [docs/design.md](docs/design.md).
-
----
+- [x] v0.1: practice lifetime, browser player, verifiable recordings, baselines (grid worlds)
+- [x] v0.2: the world maker, endless generated worlds with held-out rules (grid worlds)
+- [x] Skirmish: the real-time battle, 14 gated battles, example battles, the never-learned baseline at 0
+- [ ] v0.3: the Skirmish harness and recordings in this repository; more mechanics (bridges, keys, alarms)
+- [ ] Hidden battles with held-out mechanics; human baselines; a leaderboard
 
 [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Cite](CITATION.cff) · MIT licence.
 An independent project, not affiliated with the ARC Prize Foundation.
