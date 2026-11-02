@@ -54,6 +54,19 @@ test = longgame.make("heldout-v1-42")    # rules kept out of training: test on t
 
 <br>
 
+#### Next: gated worlds, where only what you learned earlier can win.
+
+<p align="center"><img src="docs/figures/gate.svg" alt="Gated worlds: a fact taught in world J is the only way to win world K, where nothing is shown and no base can fall in time; a fresh agent scores 0" width="860"></p>
+
+Today every level can be finished from scratch, so earlier worlds only make an agent faster. A gated world adds a
+hard test: a later level depends on a fact taught earlier (which glyph is the sign), the glyphs have moved, nothing in
+the level shows progress, and the budget is too tight to find the fact by trial. A fresh agent scores zero there, so a
+pass is proof that learning carried over, and in the weights track (context wiped at every visit) proof that it
+reached the weights rather than a notebook. The first gated battles are built into the real-time
+Skirmish test on clarkwhitehead.com; the world maker gets them in v0.3.
+
+<br>
+
 ##### Play it yourself, or write an agent in a few lines.
 
 ```bash
@@ -95,6 +108,7 @@ More in [examples/](examples/) (including [train, then test on held-out rules](e
 
 - [x] v0.1: practice lifetime, browser player, verifiable recordings, baselines
 - [x] v0.2: the world maker, endless generated worlds for training, with held-out rules for testing
+- [ ] v0.3: gated worlds (a glyph taught in one world is the only way to finish a later one; fresh agents score 0)
 - [ ] More rules (gravity, conveyors, paint, chasers, …) for the world maker
 - [ ] Changed-rule worlds and long gaps between visits
 - [ ] ARC-style picture puzzles inside lifetimes

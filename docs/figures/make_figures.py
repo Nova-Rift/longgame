@@ -154,6 +154,62 @@ def fig_lifetime():
     return svg(W, H, "".join(body), "One lifetime: learn six worlds, play three remixes, return to five")
 
 
+def fig_gate():
+    """The gate: a fact taught in one world is the only way to win a later one, so passing it proves learning."""
+    GATE = "#d9534f"
+    W, H = 900, 300
+    body = [text(32, 46, "Gated worlds", 22, INK, 700),
+            text(32, 70, "A later level that cannot be finished without what an earlier world taught: pass it and "
+                         "the learning is proven", 13, INK2)]
+
+    def mark(x, y, s, dots, lit=False):
+        out = [rect(x, y, s, s, 3, "#6b5d8c" if not lit else "#9b7fe0")]
+        pts = {1: [(0.5, 0.5)], 2: [(0.3, 0.3), (0.7, 0.7)], 3: [(0.3, 0.3), (0.5, 0.5), (0.7, 0.7)],
+               4: [(0.3, 0.3), (0.7, 0.3), (0.3, 0.7), (0.7, 0.7)]}[dots]
+        out += [circle(x + px * s, y + py * s, s * 0.09, "#f3eefc") for px, py in pts]
+        return "".join(out)
+
+    def world(x, y, title, colour, glyph_order, show_meter, clock, note):
+        w, h = 236, 150
+        out = [rect(x, y, w, h, 12, BOARD), rect(x, y, 6, h, 3, colour), text(x + 18, y + 24, title, 15, INK, 700)]
+        s = 30
+        for i, g in enumerate(glyph_order):
+            out.append(mark(x + 18 + i * (s + 10), y + 40, s, g, lit=(g == 4 and show_meter)))
+        if show_meter:
+            out.append(rect(x + 18, y + 84, 150, 8, 4, LINE))
+            out.append(rect(x + 18, y + 84, 110, 8, 4, LEARN))
+            out.append(text(x + 176, y + 92, "meter", 11, INK2))
+        else:
+            out.append(text(x + 18, y + 92, "no meter, no examples", 11, MUTED))
+        out.append(text(x + 18, y + 114, clock, 12, INK2))
+        out.append(text(x + 18, y + 134, note, 11, MUTED))
+        return "".join(out)
+
+    body.append(world(32, 96, "World J: the lesson", LEARN, [1, 2, 3, 4], True, "15 minutes",
+                      "standing on glyph 4 fills the meter"))
+    body.append(arrow(276, 171, 316, 171))
+    body.append(rect(320, 140, 90, 62, 10, FLOOR))
+    body.append(text(365, 166, "other", 12, INK2, 400, "middle"))
+    body.append(text(365, 184, "worlds…", 12, INK2, 400, "middle"))
+    body.append(arrow(416, 171, 456, 171))
+    body.append(world(460, 96, "World K: the gate", GATE, [3, 1, 4, 2], False, "1 minute: no base can fall",
+                      "only glyph 4 wins, and nothing says so"))
+    body.append(text(720, 128, "fresh agent", 12, INK2))
+    body.append(rect(720, 136, 120, 10, 5, LINE))
+    body.append(text(848, 145, "0%", 12, GATE, 700))
+    body.append(text(720, 176, "agent that learned J", 12, INK2))
+    body.append(rect(720, 184, 120, 10, 5, LINE))
+    body.append(rect(720, 184, 120, 10, 5, LEARN))
+    body.append(text(848, 193, "wins", 12, LEARN, 700))
+    body.append(text(720, 226, "Weights track: context is wiped", 11, MUTED))
+    body.append(text(720, 242, "between visits, so only learning", 11, MUTED))
+    body.append(text(720, 258, "that reached the weights passes.", 11, MUTED))
+    body.append(text(32, 276, "Solvable levels still measure how much carries over; gated levels prove that something did.",
+                     13, INK2))
+    return svg(W, H, "".join(body), "Gated worlds: a fact taught in world J is the only way to win world K, where "
+                                    "nothing is shown and no base can fall in time; a fresh agent scores 0")
+
+
 def fig_same_screen():
     rows = load_spec("practice-v0").visits[1].levels[0].map  # world B, level 1
     grid = first_grid(rows)
@@ -492,7 +548,8 @@ def fig_worlds_gif(path: Path) -> None:
 
 def main():
     figures = {"lifetime.svg": fig_lifetime(), "same-screen.svg": fig_same_screen(), "scoring.svg": fig_scoring(),
-               "baselines.svg": fig_baselines(), "idea.svg": fig_idea(), "worlds.svg": fig_worlds()}
+               "baselines.svg": fig_baselines(), "idea.svg": fig_idea(), "worlds.svg": fig_worlds(),
+               "gate.svg": fig_gate()}
     for name, body in figures.items():
         (OUT / name).write_text(body)
     fig_gif(OUT / "play.gif")
